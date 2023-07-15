@@ -119,9 +119,9 @@ https://github.com/vasvir/tcrevenge
 
 tprepack was based on tcrevenge, and it includes both header and footer generation.
 
-Run make all. Put your source image as input.bin in current folder, and then run make unpack.
+Run make all. Put your source image as input.bin in current folder, and then run extract_rootfs.sh to make unpack.
 
-After changes, run make repack and see result in result.bin.
+After changes, run  pack_firmware.sh  to make repack and see result in result.bin.
 
   
 
