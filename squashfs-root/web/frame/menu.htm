@@ -1,0 +1,143 @@
+﻿<script language="javascript" type="text/javascript">
+
+var menuargs = new Array(
+	["sys",	"sys.htm",	 				1, "Status"], // sys_info.htm
+	["sys_status", "sys.htm",	 		2, "System Status"],
+	["optic", "optic.htm",				2, "Optical Module Status"], // optic_link_info.htm
+	["sw_status", "sw_status.htm", 		2, "Port Status"], // switch_info.htm
+	
+	// stats
+	["stats", "rt_stats.htm", 			1, "Statistics"], // sys_stats.htm
+	
+	// network
+	["network", "wan.htm", 				1, "Network Setting"], // network_lan.htm
+	["wan", "wan.htm", 					2, "PON Certification"], // management_loidPassword.htm
+	["vlan_manage", "vlan_manage.htm", 			2, "Vlan Setting"], // management_loidPassword.htm
+	["lan", "lan.htm", 					2, "LAN Setting"],
+	["auth_ctc", "gponctc.htm", 		2, "CTC Configuration"], // management_loidPassword.htm
+	["tcont", "tcont.htm",				2, "T-CONT"], 
+	
+	// management
+	["management", "user.htm", 			1, "Management"], // management_user.htm
+	["user", "user.htm",				2, "User Management"],
+	["upgrade", "softup.htm",			2, "Firmware Upgrade"], // management_upgrade.htm
+	["factory_set", "factory_set.htm",	2, "Factory Defaults"], // management_default.htm
+	["dev_info", "onu_sn.htm",	 	    2, "Device Information"], // onu_sn.htm
+	["dev_mgmt", "device_mgmt.htm",		2, "Device Maintain"], // device_mgmt.htm
+	["iot_conf","iot_cfg.htm",          2,"IOT Config"],
+	["restart", "restart.htm",			2, "Reboot"] // management_restart.htm
+
+	);
+	
+var menuLiSelStk = new Array();
+var menuUlDspStk = new Array();
+function menuClick(obj)
+{
+	obj.blur();
+	var expr = /\bml(\d)\b/;
+	var ret;
+	var curLv;
+	
+	ret = expr.exec(obj.parentNode.className);
+	if (ret && ret[1])
+	{
+		curLv = parseInt(ret[1], 10);
+	}
+	
+	while(curLv <= menuLiSelStk.length)
+	{
+		ret = menuLiSelStk.pop();
+		$.removeClass(ret, "sel");
+		$.removeClass(ret, "minus");
+	}
+	
+	while(curLv <= menuUlDspStk.length)
+	{
+		$.addClass(menuUlDspStk.pop(), "nd");
+	}
+	
+	$.removeClass(menuLiSelStk[menuLiSelStk.length - 1], "sel");
+	$.addClass(obj, "sel");
+	menuLiSelStk.push(obj);
+	
+	if (obj.nextSibling)
+	{
+		$.addClass(obj, "minus");
+		var ulObj = obj.nextSibling;
+		$.removeClass(ulObj, "nd");
+		menuUlDspStk.push(ulObj);
+		
+		var child = obj.nextSibling.firstChild.firstChild;
+		if (child.href == obj.href)
+		{
+			menuClick(child);
+			return false;
+		}
+	}
+	
+	$.loadMain(obj.href.match(/\?page=(\w+\.htm)\/?$/)[1]);
+	return false;
+}
+</script>
+
+<script language="javascript" type="text/javascript">
+(function ()
+{
+	var curLv = 0;
+	var lvStack = new Array();
+	var expr = /\w+.htm$/;
+	var ret;
+	var prev = $.id("menu");
+	var obj;
+	
+	$.cgi("./frame/menu.cgi",null,function(err)
+	{
+		if (err) return;
+		for (var i = 0, l = menulist.length; i < l; i++)
+		{
+			ret = expr.exec(menulist[i]);
+			if (ret)
+				menulist[i] = ret[0];
+			else
+				menulist[i] = undefined;
+		}
+
+		for (var j = 0, m = menuargs.length; j < m; j++)
+		{
+			if (menuargs[j][2] <= 0 || menuargs[j][2] > curLv+1)
+				continue;
+			
+			for (var i = 0, l = menulist.length; i < l; i++)
+			{
+				if (menulist[i] == menuargs[j][1])
+				{	
+					obj = "<li class='ml"+menuargs[j][2]+"'><a href='index.htm?page="+menuargs[j][1]+"' id='menu_"+menuargs[j][0]+"' onclick='return menuClick(this);'>"+menuargs[j][3]+"</a></li>";
+					if (menuargs[j][2] == curLv)
+					{
+						$.append(lvStack[curLv - 1], obj);
+					}
+					else if (menuargs[j][2] == curLv+1)
+					{
+						$.addClass(prev.firstChild, "plus");
+						$.append(prev, "<ul class='mu"+menuargs[j][2]+(curLv==0?"":" nd")+"'></ul>");
+						$.append(prev.lastChild, obj);
+						lvStack.push(prev.lastChild);
+						curLv++;
+					}
+					else
+					{
+						while (menuargs[j][2] < curLv)
+						{
+							lvStack.pop();
+							curLv--;
+						}
+						$.append(lvStack[curLv - 1], obj);
+					}
+					prev = lvStack[curLv - 1].lastChild;
+					break;
+				}
+			}
+		}
+	});
+})();
+</script>

@@ -1,0 +1,27 @@
+﻿<a href="http://www.tp-link.com" title="Go to TP-LINK website"><img id="logo" src="./img/top1_1.jpg" /></a>
+<div id="mod">
+</div>
+<div id="watermark" class="top-watermark nd">
+	<div>
+		<b id="t_betafirmware" style="color:blue">Beta Firmware:</b>
+	</div>
+	<div>
+		<b id="t_beta_info" style="color:black">Beta Firmware Copyright © 2022 By TP-Link Corporation Ltd.</b>
+	</div>
+</div>
+<img id="bottom" src="./img/top2.jpg" />
+
+<script language="javascript" type="text/javascript">
+	(function () {
+		var infoobj = $.act(ACT_GET, IGD_DEV_INFO, null, null, ["X_TP_IsBeta", "modelName", "hardwareVersion"]);
+		$.exe();
+		$.isBetacode = infoobj.X_TP_IsBeta;
+		$.modelName = infoobj.modelName;
+		$.modelVersion = infoobj.hardwareVersion.split(" ")[1];
+
+		if ($.isBetacode == 1) {
+			$.removeClass($.id('watermark'), 'nd');
+		}
+		document.getElementById("mod").innerHTML = '<p id="mname">Model Name: ' + $.modelName + '</p> <p id="mnum">Model Number: ' + $.modelVersion + '</p>';
+	})();
+</script>

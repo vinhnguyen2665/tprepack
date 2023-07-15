@@ -1,0 +1,63 @@
+﻿<script language="javascript" type="text/javascript">
+function btnSave(obj)
+{
+	var newgponcfg = {};
+	
+	newgponcfg.ctcLoid = $.id("username").value;
+	newgponcfg.ctcPwd = $.id("userId").value;
+
+	$.addLoading(obj);
+	/* modified by Chen Yingtao 2016-1-23
+	 * the Object is PON_AUTH_CTC, not the GPON_AUTH_CTC
+	 */
+	//$.act(ACT_SET, GPON_AUTH_CTC, null, null,newgponcfg);
+	$.act(ACT_SET, PON_AUTH_CTC, null, null,newgponcfg);
+	$.exe(function(ret){
+		if (!ret)
+		{
+			$.act(ACT_OP, ACT_OP_OMCI_RESTART);
+			$.exe();
+			$.reload();
+		}
+	}) ;
+}
+	
+function gponCfgInit()
+{
+	var curgponcfg = {};
+	/* modified by Chen Yingtao 2016-1-23
+	 * the Object is PON_AUTH_CTC, not the GPON_AUTH_CTC
+	 */
+	// curgponcfg = $.act(ACT_GET, GPON_AUTH_CTC, null, null);
+	curgponcfg = $.act(ACT_GET, PON_AUTH_CTC, null, null);
+
+	$.exe(function(err)
+	{
+		if(!err)
+		{
+			$.id("username").value = curgponcfg.ctcLoid;
+			$.id("userId").value = curgponcfg.ctcPwd;
+		}
+	});
+}
+</script>
+<p class="et"><b>GPON CTC Configuration</b></p>
+<div class="con1 M">
+<p class="ct"></p>
+<p class="bl"></p>
+<div class="con2">
+<p class="L1 T" id="gponcfg">This page is for setting GPON CTC authentication, including UserName and UserId.</p>
+<p class="br"></p>
+	<p><b class="item L T" id="t_username">GPON UserName:</b><input type="text" class="text" size="24" id="username" maxlength="24" /></p>
+	<p><b class="item L T" id="t_userId">GPON UserId:</b><input type="password" class="text" size="24" id="userId" maxlength="12" /></p>
+</div>
+<p class="bl"></p>
+<p class="tail" id="tail">
+<input type="button" class="button L T T_save"   value="Save" id="b_save" onclick='btnSave(this)'/>
+</p>
+</div>
+
+<script language="javascript" type="text/javascript">
+$.loadHelp();
+gponCfgInit();
+</script>

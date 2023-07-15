@@ -1,0 +1,80 @@
+﻿<script language="javascript" type="text/javascript">
+
+var tcontValue;
+
+function doClick(obj)
+{
+	var tcont_val;
+	var report_val
+
+	tcont_val = $.id("management_tcont").options[$.id("management_tcont").selectedIndex].value;
+	report_val = $.id("report_tcont").options[$.id("report_tcont").selectedIndex].value;
+	
+	if(confirm("Are you sure modify ?"))
+	{
+		$.act(ACT_SET, GPON_T_CONT, tcontValue._stack, null, ["manageTcontId=" + tcont_val, "reportManageTcontId=" + report_val]);
+		
+		if (! $.exe())
+		{
+			$.guage(["The device is rebooting","Please wait.."], 100, 250, function(){$.refresh();});
+			$.act(ACT_OP, ACT_OP_REBOOT);
+			$.exe(true);		
+		}
+	}
+}
+
+function init()
+{
+	tcontValue = $.act(ACT_GET, GPON_T_CONT, null, null,["manageTcontId", "reportManageTcontId"]);
+		
+	if (! $.exe())
+	{
+		$.id("management_tcont").value = tcontValue.manageTcontId;
+		$.id("report_tcont").value = tcontValue.reportManageTcontId;
+	}
+}
+
+</script>
+<p class="et" id="manage_title_">T-CONT Setting</p>
+<div class="con1 M">
+<p class="bl"></p>
+<div class="con2">
+<p id="management_tcont_info_"> <b><i>NOTE !!!! :</i></b> If T-CONT id is error, onu will be unable to connect to OLT.</p>
+<p ></p>
+<p ></p>
+<p ></p>
+
+<p class="item">Reported manage T-CONT to OLT:
+	<select id="report_tcont" style="width:65px">
+		<option value="0">FALSE</option>
+		<option value="1">TRUE</option>
+	</select>
+</p>
+
+<p class="item">T-CONT ID Used For Management:
+	<select id="management_tcont" style="width:65px">
+		<option value="0">0</option>
+		<option value="1">1</option>
+		<option value="2">2</option>
+		<option value="3">3</option>
+		<option value="4">4</option>
+		<option value="5">5</option>
+		<option value="6">6</option>
+		<option value="7">7</option>		
+	</select>
+</p>
+
+<p ></p>
+<p ></p>
+</div>
+
+<p class="bl"></p>
+<p class="center">
+<input type="button" class="button L" value="Save And Reboot" style="width:150px" id="save" onclick="doClick(this);" /></p>
+</div>
+
+<script language="javascript" type="text/javascript">
+init();
+</script>
+	
+	

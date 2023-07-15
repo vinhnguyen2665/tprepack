@@ -1,0 +1,464 @@
+﻿<script language="javascript" type="text/javascript">
+
+var DEFAULT_IP_INDEX = 0;
+var DEFAULT_LAN_INDEX = 0;
+var DEFAULT_PON_INDEX = 0;
+
+var language_t = new Array(
+["sysInfo_",	"Sys Info",			"系统信息",		innerHTML_t, noSubIndex],
+["onuType_",	"Onu Type:",		"终端类型:",	innerHTML_t, noSubIndex],
+["runningTime_","Running Time:",	"运行时间:",	innerHTML_t, noSubIndex],
+["swVer_", 		"Software Version:","软件版本:",	innerHTML_t, noSubIndex],
+["hwVer_", 		"Hardware Version:","硬件版本:",	innerHTML_t, noSubIndex],
+["lanInfo_", 	"LAN",				"LAN",			innerHTML_t, noSubIndex],
+["ipAddr_", 	"IP:",				"IP地址:",		innerHTML_t, noSubIndex],
+["subMask_", 	"MASK:",			"子网掩码:",	innerHTML_t, noSubIndex],
+["macAddr_", 	"MAC:",				"MAC地址:",		innerHTML_t, noSubIndex],
+["wanInfo_", 	"PON",				"PON",			innerHTML_t, noSubIndex],
+["interface_", 	"TYPE:",			"接入方式:",	innerHTML_t, noSubIndex],
+["onuId_", 		"ONU ID:",			"ONU ID:",		innerHTML_t, noSubIndex],
+["regStatus_", 	"Reg Status:",		"注册状态:",	innerHTML_t, noSubIndex],
+["regTime_", 	"Reg Time:",		"注册时间:",	innerHTML_t, noSubIndex],
+["ctcVer_", 	"Ctc Version:",		"Ctc协商版本:",	innerHTML_t, noSubIndex],
+["fecStatus_", 	"Fec:",				"FEC状态:",		innerHTML_t, noSubIndex],
+["refresh", 	"Refresh",			"刷新",			value_t,	 noSubIndex]
+);
+
+function init()
+{
+	$.auto(function(){$.reload(); return false;}, 10000);
+	
+	/* 系统信息*/
+	var devInfo = $.act(ACT_GET, IGD_DEV_INFO, null, null, ["X_TPLINK_devType","softwareVersion", "hardwareVersion", "upTime"]);
+	var lanDevInfo = $.act(ACT_GL, LAN_DEV, null, null,["LANEthernetInterfaceNumberOfEntries"]);
+	/* get the pon */
+	var pon = $.act(ACT_GL, PON, null, null, ["ponType", "onuId","fecUsEn","fecDsEn"]);
+	var ponRTStatus;
+	var ipList;
+	var onuState ="--";
+	if (!$.exe())
+	{
+		/*set sys info*/
+		
+		ponRTStatus = $.act(ACT_GET, PON_REG_INFO, pon[DEFAULT_PON_INDEX].__stack, null, ["regStatus", "regTime"]);
+		
+		ipList = $.act(ACT_GS, LAN_IP_INTF, null, lanDevInfo[DEFAULT_LAN_INDEX].__stack,["IPInterfaceIPAddress", "IPInterfaceSubnetMask", "X_TPLINK_MACAddress"]);
+		if (!$.exe())
+		{
+			
+		
+		
+			$.h($.id("oun_name"), devInfo.X_TPLINK_devType ? devInfo.X_TPLINK_devType : "N/A");
+			$.h($.id("run_time"), devInfo.upTime ? devInfo.upTime : "N/A");
+			$.h($.id("software_ver"), devInfo.softwareVersion ? devInfo.softwareVersion : "N/A");
+			$.h($.id("hardware_ver"), devInfo.hardwareVersion ? devInfo.hardwareVersion : "N/A");
+		
+			/*set lan info*/
+			$.h($.id("ip_address"), ipList[DEFAULT_IP_INDEX].IPInterfaceIPAddress ? ipList[DEFAULT_IP_INDEX].IPInterfaceIPAddress : "N/A");
+			$.h($.id("sub_mask"), ipList[DEFAULT_IP_INDEX].IPInterfaceSubnetMask ? ipList[DEFAULT_IP_INDEX].IPInterfaceSubnetMask : "N/A");
+			$.h($.id("mac_address"), ipList[DEFAULT_IP_INDEX].X_TPLINK_MACAddress ? ipList[DEFAULT_IP_INDEX].X_TPLINK_MACAddress : "N/A");
+			/*set pon info*/
+			$.h($.id("interfaceType"), pon[DEFAULT_LAN_INDEX].ponType != "" ? pon[DEFAULT_LAN_INDEX].ponType : "N/A");
+			$.h($.id("onuid"), pon[DEFAULT_LAN_INDEX].onuId != "" ? pon[DEFAULT_LAN_INDEX].onuId : "N/A");
+			$.h($.id("fec_status_us"), pon[DEFAULT_LAN_INDEX].fecUsEn == 1 ? "On" : "Off");
+			$.h($.id("fec_status_ds"), pon[DEFAULT_LAN_INDEX].fecDsEn == 1 ? "On" : "Off"); 
+			
+			
+			switch (ponRTStatus.regStatus)
+			{
+				case "0":
+					onuState = "Fiber disconnected";
+					break;
+					
+				case "1":
+					onuState = "Unregistered (O1)";
+					break;
+					
+				case "2":
+					onuState = "Registering (O2)";
+					break;
+				
+				case "3":
+					onuState = "Registering (O3)";
+					break;
+			
+				case "4":
+					onuState = "Registering (O4)";
+					break;
+			
+				case "5":
+					onuState = "Registered (O5)";
+					break;
+			
+				case "6":
+					onuState = "Link error (O6)";
+					break;
+			
+				case "7":
+					onuState = "Emergency Stop (O7)";
+					break;
+
+				default:
+					onuState = "Unknown error";
+					break;
+			}
+			$.h($.id("reg_status"), onuState);
+			$.h($.id("reg_time"), ponRTStatus.regTime != "" ? ponRTStatus.regTime : "N/A");
+			//$.h($.id("ctc_ver"), ponRTStatus.ctcVersion != "" ? ponRTStatus.ctcVersion : "N/A");
+			
+		}
+	}
+} 
+function lan_init()
+{
+	//$.auto(function(){$.reload(); return false;}, 1000000);
+	
+	var portStk = "";
+	var tmp;
+	var portList = $.act(ACT_GL, SWITCH_RT_DATA, null, null, ["linkStatus", "speedDuple", "flowCtrlEn"]);
+
+	if (!$.exe())
+	{
+	
+			$.h($.id("link_status"), portList[0].linkStatus ==1 ? "Connected" : "Disconnected");
+				
+	
+			$.h($.id("speed_dup"), $.id("dup_con").options[portList[0].speedDuple].text);	
+	
+			$.h($.id("flow_ctrl"), portList[0].flowCtrlEn == 1 ? "On" : "Off");
+			
+			portStk = portList[0].__stack;
+			
+			if (!$.exe())
+			{
+			}
+		
+	}	
+	
+}
+function initoptics()
+{
+	$.auto(function(){$.reload(); return false;}, 100000);
+	
+	var ponList = $.act(ACT_GL, PON, null, null, ["ponType"]);
+	if (!$.exe())
+	{
+		var opticInfo = $.act(ACT_GET, OPTICAL, ponList[DEFAULT_PON_INDEX].__stack, null, ["temperature","voltage", "txPower", "rxPower", "bias"]);
+		if (!$.exe())
+		{
+
+			//OMCI规定的最小单位
+			var temperatureCalibration 	= 256;	//获取到的温度，	最小单位为1/256摄氏度.	除以256，变成摄氏度
+			var vottageCalibration 		= 20;	//获取到的电压，	最小单位20mV.			乘以20，变成mV
+			var biasCurrentCalibration 	= 500;	//获取到的偏置电流，最小单位2uA.			除以500变成mA
+			var TXPowerCalibration 		= 500;	//获取到的功率，	最小单位0.002dBuw.		除以500,变成dBuw,再减30变成dBm
+			var RXPowerCalibration 		= 500;
+			
+			//Tx光功率小于-6dBm，认为没有发光。
+			var TXPowerIgnore = -6.0;
+			//Rx光功率小于-33dBm，认为没有发光。
+			var RXPowerIgnore = -33.0;
+			
+			//下面3个参数是带符号数
+			var temperature = parseInt(opticInfo.temperature);
+			var txPower 	= parseInt(opticInfo.txPower);
+			var rxPower 	= parseInt(opticInfo.rxPower);
+			
+			//正负数的判断和转换
+			if (32767 < temperature)
+			{
+				temperature = (temperature - 1) ^ 0xffff ;
+				temperature *= -1;
+			}
+			
+			if (32767 < txPower)
+			{
+				txPower = (txPower - 1) ^ 0xffff;
+				txPower *= -1;
+			}
+
+			if (32767 < rxPower)
+			{
+				rxPower = (rxPower - 1) ^ 0xffff;
+				rxPower *= -1;
+			}
+			
+			//将单位转换为摄氏度,mV,mA,dBm
+			var tempTemperature = (temperature * 1.0 ) / temperatureCalibration;
+			$.h($.id("temperature"), tempTemperature.toFixed(2));
+
+			var tempVottage 	= opticInfo.voltage  * vottageCalibration;
+			$.h($.id("voltage"), tempVottage);
+
+			var tempBiasCurrent = (opticInfo.bias * 1.0) / biasCurrentCalibration;
+			$.h($.id("current"), tempBiasCurrent.toFixed(2));
+
+			var tempTXPower 	= (txPower * 1.0) / TXPowerCalibration - 30.0;
+			var tempRXPower 	= (rxPower * 1.0) / RXPowerCalibration - 30.0;
+
+			if (TXPowerIgnore >= tempTXPower)
+			{
+				 $.h($.id("tx_power"), "--");
+			}
+			else
+			{
+				$.h($.id("tx_power"), tempTXPower.toFixed(2));
+			}
+			
+			if (RXPowerIgnore >= tempRXPower)
+			{
+				 $.h($.id("rx_power"), "--");
+			}
+			else
+			{
+				$.h($.id("rx_power"), tempRXPower.toFixed(2));
+			}
+
+
+			
+		}
+	}
+}
+
+function drawOnePort(stats)
+{
+	
+	// sendpacket
+
+	
+	if (stats.sendPacketTop32 != 0)
+	{
+		$.h($.id("lan_tx"), " " + stats.sendPacketTop32 + stats.sendPacketLow32);
+	}
+	else
+	{
+		$.h($.id("lan_tx"), " " +  stats.sendPacketLow32);
+	}
+	// receivepacket
+	
+	if (stats.rcvPacketTop32 != 0)
+	{
+		$.h($.id("lan_rx"), " " + stats.rcvPacketTop32 + stats.rcvPacketLow32);
+	}
+	else
+	{
+		$.h($.id("lan_rx"), " "  + stats.rcvPacketLow32);
+	}
+	//droppacket
+
+	if (stats.dropPacketTop32 != 0)
+	{
+		$.h($.id("lan_drop"), " " + stats.dropPacketTop32 + stats.dropPacketLow32);
+	}
+	else
+	{
+		$.h($.id("lan_drop"), " " + stats.dropPacketLow32);
+	}
+	//errpacket
+	
+	
+	if (stats.errPacketTop32 != 0)
+	{
+		$.h($.id("lan_error"), " " + stats.errPacketTop32 + stats.errPacketLow32);
+	}
+	else
+	{
+		$.h($.id("lan_error"), " " +  stats.errPacketLow32);
+	}
+	
+}
+
+function drawPon(stats)
+{
+
+	if (stats.sendPacketTop32 != 0)
+	{
+	    var tmpSend = 0 ;
+		tmpSend = (stats.sendPacketTop32*4294967696) - (-stats.sendPacketLow32);
+		$.id("pon_tx").innerHTML = " " + tmpSend;
+	}
+	else
+	{
+		$.id("pon_tx").innerHTML = " " +  stats.sendPacketLow32;
+	}
+	
+	if (stats.rcvPacketTop32 != 0)
+	{
+		var tmpRcv = 0;
+		tmpRcv = (stats.rcvPacketTop32*4294967696) - (-stats.rcvPacketLow32);
+		$.id("pon_rx").innerHTML = " " + tmpRcv;
+	}
+	
+	else
+	{
+		$.id("pon_rx").innerHTML = " " +  stats.rcvPacketLow32;
+	}
+}
+
+function drawOmci(omciStat)
+{
+	
+	if (omciStat.rcvPacketTop32 != 0)
+	{
+		$.id("omci_rx").innerHTML = " " + omciStat.rcvPacketLow32;
+	}
+	else
+	{
+		
+		$.id("omci_rx").innerHTML = " " +  omciStat.rcvPacketLow32;
+	}
+	
+	if (omciStat.sendPacketTop32 != 0)
+	{
+		$.id("omci_tx").innerHTML = " " + omciStat.sendPacketLow32;
+	}
+	else
+	{
+	
+		$.id("omci_tx").innerHTML = " " +  omciStat.sendPacketLow32;
+	}
+	
+}	
+
+function stats_init()
+{	
+	$.auto(function(){$.reload(); return false;}, 1000000);
+	var ponList = $.act(ACT_GL, PON, null, null, ["onuId"]);
+
+	if (!$.exe())
+	{
+		var ponStat = $.act(ACT_GET, PON_RT_STATS, null, ponList[0].__stack, null);
+		var omciStat = $.act(ACT_GET, OMCI_RT_STATS, null, ponList[0].__stack, null);
+		var uniStat = $.act(ACT_GET, UNI_STATS, null, ponList[0].__stack, null);
+		if (!$.exe())
+		{
+			drawPon(ponStat);
+			
+			drawOmci(omciStat);
+			
+			drawOnePort(uniStat);
+		}
+	}
+	return;
+}
+</script>
+<p class="et" id="sysInfo_"><b>System Status</b></p>
+<div class="con1 M">
+<p class="bl"></p>
+<p class="st T">System Status</p>
+<div class="con2">
+<p class="L2"><b class="item M" id="onuType_">ONU Type:</b><span id="oun_name">-</span></p>
+<p class="L2"><b class="item M" id="runningTime_">System UP Time:</b><span id="run_time">-</span></p>
+<p class="L2"><b class="item M" id="swVer_">Firmware Version:</b><span id="software_ver">-</span></p>
+<p class="L2"><b class="item M" id="hwVer_">Hardware Version:</b><span id="hardware_ver">-</span></p>
+</div>
+</div>
+
+<div class="con1 M">
+<p class="ct" id="lanInfo_"><b >LAN</b></p>
+<p class="bl"></p>
+<p class="st T">LAN</p>
+<div class="con2">
+<!--
+<p class="br"></p>
+-->
+<p>
+<input type="hidden" id="port_con" value="port" />
+<select class="nd" id="dup_con">
+	<option>10Mbps half-duplex</option>
+	<option>10Mbps full duplex</option>
+	<option>100Mbps half-duplex</option>
+	<option>100Mbps full duplex</option>
+	<option>1000Mbps half-duplex</option>
+	<option>1000Mbps full duplex</option>
+	<option>self-adaption</option>
+</select>
+</p>
+
+<p class="L2"><b class="item M" id="ipAddr_">IP Address:</b><span id="ip_address">-</span></p>
+<p class="L2"><b class="item M" id="subMask_">Subnet Mask:</b><span id="sub_mask">-</span></p>
+<p class="L2"><b class="item M" id="macAddr_">MAC Address:</b><span id="mac_address">-</span></p>
+<p class="L2"><b class="item M" id = "link_status_">LAN Status:</b><span id="link_status">-</span></p>
+<p class="L2"><b class="item M" id = "speed_dup_">LAN Model:</b><span id="speed_dup">-</span></p>
+<p class="L2"><b class="item M" id = "flow_ctrl_">Flow Control:</b><span id="flow_ctrl">-</span></p>
+</div>
+</div>
+
+<div class="con1 M">
+<p class="ct" id="wanInfo_"><b>PON</b></p>
+<p class="bl"></p>
+<p class="st T">PON</p>
+<div class="con2">
+<p class="L2"><b class="item M" id="interfaceType_">Access Mode:</b><span id="interfaceType">GPON</span></p>
+<p class="L2"><b class="item M" id="onuId_">ONU ID:</b><span id="onuid">-</span></p>
+<p class="L2"><b class="item M" id="regStatus_">Authentication:</b><span id="reg_status">-</span></p>
+<p class="nd"><b class="item M" id="regTime_">Authentication Time:</b><span id="reg_time">-</span></p>
+<!--<p class="L2"><b class="item M" id="ctcVer_">CTC协商版本:</b><span id="ctc_ver">-</span></p>-->
+<p class="L2"><b class="item M" id="fecStatus_u">Upstream FEC:</b><span id="fec_status_us">-</span></p>
+<p class="L2"><b class="item M" id="fecStatus_d">Downstream FEC:</b><span id="fec_status_ds">-</span></p>
+<p class="br"></p>
+<p class="L2"><b class="item M" id="onu_temp_">Temperature:</b><span id="temperature">- </span>&nbsp;<sup>o</sup>C</p>
+<p class="L2"><b class="item M" id="onu_vol_">Voltage:</b><span id="voltage">-</span> mV</p>
+<p class="L2"><b class="item M" id="onu_cur_">Bias Current:</b><span id="current">-</span> mA</p>
+<p class="L2"><b class="item M" id="tx_power_">TX Power:</b><span id="tx_power">-</span> dBm</p>
+<p class="L2"><b class="item M" id="rx_power_">RX Power:</b><span id="rx_power">-</span> dBm</p>
+</div>
+</div>
+
+<div class="con1 M">
+<p class="ct"><b>Statistics</b></p>
+<p class="bl"></p>
+<p class="st T">Statistics</p>
+<div class="con2">
+<div class="M thead " id="div_stats_head">
+    <table id="table_stats_header" class="tc XL" >
+        <tr>
+            <th width="25%">Type</th>
+            <th width="25%">PON</th>
+            <th width="25%">OMCI</th>
+            <th width="25%">LAN</th>
+        </tr>
+        
+         <tr>
+            <th width="25%">RX Packets</th>
+            <th width="25%" id="pon_rx">N/A</th>
+            <th width="25%" id="omci_rx">N/A</th>
+            <th width="25%" id="lan_rx">N/A</th>
+        </tr>
+        
+         <tr>
+            <th width="25%">TX Packets</th>
+            <th width="25%" id="pon_tx">N/A</th>
+            <th width="25%" id="omci_tx">N/A</th>
+            <th width="25%" id="lan_tx">N/A</th>
+        </tr>
+        
+         <tr>
+            <th width="25%">Drop Packets</th>
+            <th width="25%" id="pon_drop">N/A</th>
+            <th width="25%" id="omci_drop">N/A</th>
+            <th width="25%" id="lan_drop">N/A</th>
+        </tr>
+        
+         <tr>
+            <th width="25%">Error Packets</th>
+            <th width="25%" id="pon_error">N/A</th>
+            <th width="25%" id="omci_error">N/A</th>
+            <th width="25%" id="lan_error">N/A</th>
+        </tr>
+    </table>
+</div>	
+</div>
+</div>
+<p class="bl"></p>
+<p class="center"><input type="button" class="button L" id="refresh" value="Refresh" onclick="$.reload()"/></p>
+
+<script language="javascript" type="text/javascript">
+init();
+lan_init();
+initoptics();
+stats_init();
+</script>
+	
+	
+	

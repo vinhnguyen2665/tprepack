@@ -1,0 +1,268 @@
+﻿<script language="javascript" type="text/javascript">
+
+
+
+function drawOnePort(stats)
+{
+	
+	// sendpacket
+
+	
+	if (stats.sendPacketTop32 != 0)
+	{
+		$.h($.id("switch_tx"), " " + stats.sendPacketTop32 + stats.sendPacketLow32);
+	}
+	else
+	{
+		$.h($.id("switch_tx"), " " +  stats.sendPacketLow32);
+	}
+	// receivepacket
+	
+	if (stats.rcvPacketTop32 != 0)
+	{
+		$.h($.id("switch_rx"), " " + stats.rcvPacketTop32 + stats.rcvPacketLow32);
+	}
+	else
+	{
+		$.h($.id("switch_rx"), " "  + stats.rcvPacketLow32);
+	}
+	//droppacket
+
+	if (stats.dropPacketTop32 != 0)
+	{
+		$.h($.id("switch_drop"), " " + stats.dropPacketTop32 + stats.dropPacketLow32);
+	}
+	else
+	{
+		$.h($.id("switch_drop"), " " + stats.dropPacketLow32);
+	}
+	//errpacket
+	
+	
+	if (stats.errPacketTop32 != 0)
+	{
+		$.h($.id("switch_err"), " " + stats.errPacketTop32 + stats.errPacketLow32);
+	}
+	else
+	{
+		$.h($.id("switch_err"), " " +  stats.errPacketLow32);
+	}
+	
+}
+
+function drawPon(stats)
+{
+
+	if (stats.sendPacketTop32 != 0)
+	{
+	    var tmpSend = 0 ;
+		tmpSend = (stats.sendPacketTop32*4294967696) - (-stats.sendPacketLow32);
+		$.id("pon_frame_tx").innerHTML = " " + tmpSend;
+	}
+	else
+	{
+		$.id("pon_frame_tx").innerHTML = " " +  stats.sendPacketLow32;
+	}
+	
+	if (stats.rcvPacketTop32 != 0)
+	{
+		var tmpRcv = 0;
+		tmpRcv = (stats.rcvPacketTop32*4294967696) - (-stats.rcvPacketLow32);
+		$.id("pon_frame_rx").innerHTML = " " + tmpRcv;
+	}
+	
+	else
+	{
+		$.id("pon_frame_rx").innerHTML = " " +  stats.rcvPacketLow32;
+	}
+
+	/*
+	if (stats.dropPacketTop32 != 0)
+	{
+	
+		$.id("pon_frame_drop").innerHTML = " " + stats.dropPacketTop32 + stats.dropPacketLow32;
+	}
+	
+	else
+	{
+		$.id("pon_frame_drop").innerHTML = " " + stats.dropPacketLow32;
+	}
+	
+	if (stats.crcErrPacketTop32 != 0)
+	{
+		$.id("pon_frame_crc").innerHTML = " " + stats.crcErrPacketTop32 + stats.crcErrPacketLow32;
+	}
+	
+	else
+	{
+		$.id("pon_frame_crc").innerHTML = " " + stats.crcErrPacketLow32;
+	}
+	
+	if (stats.fecErrPacketTop32 != 0)
+	{
+		$.id("pon_frame_fec").innerHTML = " " + stats.fecErrPacketTop32 + stats.fecErrPacketLow32;
+	}
+	else
+	{
+		$.id("pon_frame_fec").innerHTML = " " +  stats.fecErrPacketLow32;
+	}
+	*/
+}
+
+function drawOmci(omciStat)
+{
+	
+	if (omciStat.rcvPacketTop32 != 0)
+	{
+		$.id("omci_frame_rx").innerHTML = " " + omciStat.rcvPacketLow32;
+	}
+	else
+	{
+		
+		$.id("omci_frame_rx").innerHTML = " " +  omciStat.rcvPacketLow32;
+	}
+	
+	if (omciStat.sendPacketTop32 != 0)
+	{
+		$.id("omci_frame_tx").innerHTML = " " + omciStat.sendPacketLow32;
+	}
+	else
+	{
+	
+		$.id("omci_frame_tx").innerHTML = " " +  omciStat.sendPacketLow32;
+	}
+	
+}	
+	
+function drawOam(oamStat)
+{
+	if (oamStat.rcvPacketTop32 != 0)
+	{
+		$.id("oam_frame_rx").innerHTML = " " + oamStat.rcvPacketTop32 +  oamStat.rcvPacketLow32;
+	}
+	else
+	{
+		$.id("oam_frame_rx").innerHTML = " " +  oamStat.rcvPacketLow32;
+	}
+	
+	if (oamStat.sendPacketTop32 != 0)
+	{
+		$.id("oam_frame_tx").innerHTML = " " + oamStat.sendPacketTop32 +  oamStat.sendPacketLow32;
+	}
+	else
+	{
+		$.id("oam_frame_tx").innerHTML = " " +  oamStat.sendPacketLow32;
+	}
+	
+}
+
+function drawMpcp(mpcpStat)
+{
+	if (mpcpStat.rcvPacketTop32 != 0)
+	{
+		$.id("mpcp_rx").innerHTML = " " + mpcpStat.rcvPacketTop32 +  mpcpStat.rcvPacketLow32;
+	}
+	else
+	{
+		$.id("mpcp_rx").innerHTML = " " +  mpcpStat.rcvPacketLow32;
+	}
+	
+	if (mpcpStat.sendPacketTop32 != 0)
+	{
+		$.id("mpcp_tx").innerHTML = " " + mpcpStat.sendPacketTop32 +  mpcpStat.sendPacketLow32;
+	}
+	else
+	{
+		$.id("mpcp_tx").innerHTML = " " +  mpcpStat.sendPacketLow32;
+	}
+	
+	if (mpcpStat.dropPacketTop32 != 0)
+	{
+		$.id("mpcp_drop").innerHTML = " " + mpcpStat.dropPacketTop32 +  mpcpStat.dropPacketLow32;
+	}
+	else
+	{
+		$.id("mpcp_drop").innerHTML = " " + mpcpStat.dropPacketLow32;
+	}
+}
+
+
+
+
+function init()
+{	
+	$.auto(function(){$.reload(); return false;}, 1000000);
+	var ponList = $.act(ACT_GL, PON, null, null, ["onuId"]);
+
+	if (!$.exe())
+	{
+		var ponStat = $.act(ACT_GET, PON_RT_STATS, null, ponList[0].__stack, null);
+		var omciStat = $.act(ACT_GET, OMCI_RT_STATS, null, ponList[0].__stack, null);
+		var uniStat = $.act(ACT_GET, UNI_STATS, null, ponList[0].__stack, null);
+		if (!$.exe())
+		{
+			drawPon(ponStat);
+			
+			drawOmci(omciStat);
+			
+			drawOnePort(uniStat);
+		}
+	}
+	return;
+}
+
+</script>
+
+<p class="et"><b>Statistics</b></p>
+<div class="con1 M">
+<p class="ct"><b>PON</b></p>
+<p class="bl"></p>
+<p class="st T">PON</p>
+<div class="con2">
+
+<p class="L2"><b class="item M" id="ponFrameTx_">Tx Packets：</b><span id="pon_frame_tx">-</span></p>
+<p class="L2"><b class="item M" id="ponFrameRx_">Rx Packets：</b><span id="pon_frame_rx">-</span></p>
+<!--
+<p class="L2"><b class="item M" id="ponByteTx_">TX Bytes：</b><span id="pon_byte_tx">-</span></p>
+<p class="L2"><b class="item M" id="ponByteRx_">RX Bytes：</b><span id="pon_byte_rx">-</span></p>
+-->
+</div>
+</div>
+
+<div class="con1 M">
+<p class="ct"><b>OMCI</b></p>
+<p class="bl"></p>
+<p class="st T">OMCI</p>
+<div class="con2">
+<p class="L2"><b class="item M" id="omciFrameTx_">Tx Packets：</b><span id="omci_frame_tx">-</span></p>
+<p class="L2"><b class="item M" id="omciFrameRx_">Rx Packets：</b><span id="omci_frame_rx">-</span></p>
+<!--
+<p class="L2"><b class="item M" id="omciByteTx_">TX Bytes：</b><span id="omci_byte_tx">-</span></p>
+<p class="L2"><b class="item M" id="omciByteRx_">RX Bytes：</b><span id="omci_byte_rx">-</span></p>
+-->
+</div>
+</div>
+
+<div class="con1 M">
+<p class="ct"><b>UNI</b></p>
+<p class="bl"></p>
+<p class="st T">UNI</p>
+<div class="con2">
+
+
+<p class="L2"><b class="item M" id="switch_tx_">Tx Packets：</b><span id="switch_tx">-</span></p>
+<p class="L2"><b class="item M" id="switch_rx_">Rx Packets：</b><span id="switch_rx">-</span></p>
+<p class="L2"><b class="item M" id="switch_drop_">Dropped Packets：</b><span id="switch_drop">-</span></p>
+<p class="L2"><b class="item M" id="switch_err_">Error Packets：</b><span id="switch_err">-</span></p>
+
+</div>
+</div>
+<p class="bl"></p>
+<p class="center"><input type="button" class="button L" value="Refresh" id="refresh" onclick="$.reload()"/></p>
+
+<script language="javascript" type="text/javascript">
+init();
+</script>
+	
+	
+	

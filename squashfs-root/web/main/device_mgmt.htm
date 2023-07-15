@@ -1,0 +1,1436 @@
+﻿<script language="javascript" type="text/javascript">
+
+/* Function for iot view begin */
+var IOT_ATTR_NUMBER = "0";
+var IOT_ATTR_ARRAY = "1";
+var IOT_ATTR_BOOLEAN = "2";
+var IOT_INST_ID_ALL = "65536";
+
+function getAttrById(attrs, attrId)
+{
+	var idx = 0;
+	
+	for (idx = 0; idx < attrs.length; idx++)
+	{
+		if (attrs[idx].attrId == attrId)
+		{
+			return attrs[idx];	
+		}
+	}
+	
+	return null;
+}
+function buildIotTable(l_dbMeObjs)
+{
+	var table = $.id("iotViewTable");
+	var row, cell;
+	var meIdCell, meNameCell, instIdCell;
+	var dbMeObj, dbInstObj, dbIotObj, dbAttrObj;
+	var firstMeRow = true;
+	var firstInstRow = true;
+	var meRowSpan = 0;
+	var flag = false;
+	for (var meIdx = 0; meIdx < l_dbMeObjs.length; meIdx++)
+	{
+		dbMeObj = l_dbMeObjs[meIdx];
+		meRowSpan = 0;
+		firstMeRow = true;
+		meIdCell = null;
+		meNameCell = null;
+		for (var cnt = 0; cnt < 2; cnt++)
+		{
+			instIdCell = null;
+			for (var instIdx = 0; instIdx < dbMeObj.insts.length; instIdx++)
+			{
+				dbInstObj = dbMeObj.insts[instIdx];
+				firstInstRow = true;
+				
+				if (cnt == 0)
+				{
+					flag = 	(IOT_INST_ID_ALL == dbInstObj.instId);
+				}
+				else
+				{
+					flag = 	(IOT_INST_ID_ALL != dbInstObj.instId)
+				}
+
+				if (flag)
+				{
+					for (var iotIdx = 0; iotIdx < dbInstObj.iots.length; iotIdx++)
+					{
+						dbIotObj = dbInstObj.iots[iotIdx];
+						dbAttrObj = getAttrById(dbMeObj.attrs, dbIotObj.attrId);
+						row = table.insertRow(-1);
+						
+						if (firstMeRow == true)
+						{
+							cell = row.insertCell(-1);
+							$.html(cell, dbMeObj.meId);
+							meIdCell = cell;	
+	
+							cell = row.insertCell(-1);
+							$.html(cell, dbMeObj.meName);
+							meNameCell = cell;	
+							firstMeRow = false;	
+						}
+						
+						if (firstInstRow == true)
+						{
+							cell = row.insertCell(-1);
+							$.html(cell, cnt == 0 ? "All" : dbInstObj.instId);
+							instIdCell = cell;
+							firstInstRow = false;
+						}
+						
+						cell = row.insertCell(-1);
+						$.html(cell, dbIotObj.attrId);
+						
+						cell = row.insertCell(-1);
+						$.html(cell, dbAttrObj.attrName);
+						cell.style.textAlign = "left";
+						
+						cell = row.insertCell(-1);
+						if (dbAttrObj.attrType  == IOT_ATTR_BOOLEAN)
+						{
+							$.html(cell, dbIotObj.value == 0  ? "false" : "true");
+						}
+						else if (dbAttrObj.attrType == IOT_ATTR_NUMBER)
+						{
+							if (dbAttrObj.attrFmt == "hex")
+							{
+								$.html(cell, "0x" + dbIotObj.value);
+							}
+							else
+							{
+								$.html(cell, dbIotObj.value);
+							}
+						}
+						else
+						{
+							$.html(cell, dbIotObj.value);
+						}
+					}
+					
+					if (null != instIdCell)
+					{
+						instIdCell.rowSpan = dbInstObj.iots.length;
+					}
+					meRowSpan += dbInstObj.iots.length;
+				}
+			}
+		}
+		if (meRowSpan > 1)
+		{
+			meIdCell.rowSpan = meRowSpan;
+			meNameCell.rowSpan = meRowSpan;
+		}
+	}
+}
+
+function initDmObjs(l_dbMeObjs)
+{
+	var dmMeObj, dmMeObjs;
+	var dmAttrObj, dmAttrObjs;
+	var dmInstObj, dmInstObjs;
+	var dmIotObj, dmIotObjs;
+	
+	var dbMeObj, dbAttrObj, dbInstObj, dbIotObj;
+	
+	var dbInstObjs = new Array();
+
+	dmInstObjs = $.act(ACT_GL, GPON_OMCI_ME_INST, null, null);
+	if (!$.exe())
+	{
+		for (var instIdx = 0; instIdx < dmInstObjs.length; instIdx++)
+		{
+			dmInstObj = dmInstObjs[instIdx];
+			
+			dbInstObj = new Object();
+			dbInstObj.meId = dmInstObj.meId;
+			dbInstObj.instId = dmInstObj.instId;
+			dbInstObj.instDesc = dmInstObj.instDesc;
+			dbInstObj.iots = new Array();
+			dmIotObjs = $.act(ACT_GS, GPON_OMCI_ME_IOT, null, dmInstObj.__stack);
+			if (!$.exe())
+			{
+				for (var iotIdx = 0; iotIdx < dmIotObjs.length; iotIdx++)
+				{
+					dmIotObj = dmIotObjs[iotIdx];
+					dbIotObj = new Object();
+					dbIotObj.attrId = dmIotObj.attrId;
+					dbIotObj.value = dmIotObj.value;
+					
+					dbInstObj.iots.push(dbIotObj);
+				}
+			}					
+			dbInstObjs.push(dbInstObj);
+		}
+	}
+
+	
+	dmMeObjs = $.act(ACT_GL, GPON_OMCI_ME_RT, null, null);
+	if (!$.exe())
+	{
+		for (var meIdx = 0; meIdx < dmMeObjs.length; meIdx++)
+		{
+			dmMeObj = dmMeObjs[meIdx];
+			dbMeObj = new Object();
+			dbMeObj.meId = dmMeObj.meId;
+			dbMeObj.meName = dmMeObj.meName;
+			dbMeObj.attrs = new Array();
+			dmAttrObjs = $.act(ACT_GS, GPON_OMCI_ME_ATTR_RT, null, dmMeObj.__stack);
+			if (!$.exe())
+			{
+				for (var attrIdx = 0; attrIdx < dmAttrObjs.length; attrIdx++)
+				{
+					dmAttrObj = dmAttrObjs[attrIdx];
+					dbAttrObj = new Object();
+					dbAttrObj.attrId = dmAttrObj.attrId;
+					dbAttrObj.attrName = dmAttrObj.name;
+					dbAttrObj.attrType = dmAttrObj.type;
+					dbAttrObj.attrFmt = dmAttrObj.format;
+					dbMeObj.attrs.push(dbAttrObj);
+				}
+			}
+			
+			dbMeObj.insts = new Array();
+			for (var instIdx = 0; instIdx < dbInstObjs.length; instIdx++)
+			{
+				if (dbMeObj.meId != dbInstObjs[instIdx].meId)
+				{
+					continue;
+				}
+
+				dbMeObj.insts.push(dbInstObjs[instIdx]);
+			}
+
+			l_dbMeObjs.push(dbMeObj);
+		}
+	}
+}
+/* Function for iot view end */
+
+var ME_ID_MIN = 1;
+var ME_ID_MAX = 65535;
+
+var NEW_ROW_ID = -1;
+
+function GponIotEntry(meId, meName, meDesc)
+{
+	this.meId = meId;
+	this.meName = meName;
+	this.meDesc = meDesc;
+}
+
+var rowBeforeEdit = new GponIotEntry("", "", "");	
+var rowAfterEdit = new GponIotEntry("", "", "");	
+
+var rowPending = false;
+
+var iotTableId = "iotTable";
+
+var tdIdPrefix = {meId: "tdMeId_", meName: "tdMeName_", meDesc: "tdMeDesc_"};
+
+var tdOprPrefix = "tdOpr_";
+
+var tdStackPrefix = "tdStack_";
+
+var btnOkIdPrefix = "btnOk_";
+var btnCancelIdPrefix = "btnCancel_";
+
+var btnEditIdPrefix = "btnEdit_";
+var btnDelIdPrefix = "btnDel_";
+
+var rowIdPrefix = "row_";
+
+var btnAddId = "btnAdd";
+
+var btnApplyId = "btnApply";
+
+var meEntries = null;
+
+function rowTxbChange(txb)
+{
+	var newVal = txb.value;
+	for (var field in rowAfterEdit)
+	{
+		if ("txb_" + field == txb.id)
+		{
+			rowAfterEdit[field] = newVal;
+		}
+	}
+}
+
+function txbHtml(id, value, onchange)
+{
+	return "<input type=\"text\" class=\"text S\"  maxlength=\"5\" id=\"" + id + "\" value = \"" + value + "\" onblur = \"return " + onchange +"(this);\"/>";
+}
+
+function rowBtnOprHtml(btns, rowId, onclick)
+{
+	var html="";
+	var idx = 0;
+	for (idx = 0; idx < btns.length; idx++)
+	{
+		html += "<input type=\"button\" id=\"" + btns[idx].id + "\" class=\"button S \" value=\"" + btns[idx].val + "\" onclick = \"" + onclick + "(this, " + rowId + ");\"" + (btns[idx].disabled ? "disabled = true" : "") +  "/>";
+	}
+	
+	return html;
+}
+
+function iotEntryExists(meId)
+{
+	var table = $.id(iotTableId);
+	var rowCnt = table.rows.length - 1;	
+	for (var rowId = 0; rowId < rowCnt; rowId++)
+	{
+		var rowMeId = $.h($.id(tdIdPrefix.meId + rowId));
+		if (rowMeId == meId)
+		{
+			return true;	
+		}
+	}
+	
+	return false;
+}
+
+function iotEntryValidation(entry)
+{
+	if (typeof entry["meId"] === "string" && entry["meId"].match(/\D/))
+	{
+		alert('Illegal ME ID value : ' + entry["meId"]);
+		return false;
+	}
+	else
+	{
+		var val = parseInt(entry["meId"], 10);
+		if (isNaN(val) || (val < ME_ID_MIN || val > ME_ID_MAX))
+		{
+			alert('Illegal ME ID value : ' + entry["meId"] + ", it must range in [ " + ME_ID_MIN + ", " + ME_ID_MAX + " ]");
+			return false;	
+		}
+		else
+		{
+			return true;
+		}
+	}
+}
+
+function SaveOKNotify()
+{
+	//将IOT文件保存到flash中
+	var iotcfglist = {};
+	var cfg = $.act(ACT_GET, GPON_IOT_CFG, null, null, ["chooseIdx"]);
+	if ($.exe())
+	{
+		return -1;
+	}
+
+	iot_list = $.act(ACT_GL, GPON_IOT_CFG_LIST, null, null);
+	if ($.exe())
+	{
+		return -1;
+	}
+	
+	var idx;
+	var iotcfglistobj;
+	for (idx = 0; idx < iot_list.length; idx++)
+	{
+		iotcfglistobj = iot_list[idx];
+		if (cfg.chooseIdx == iotcfglistobj.cfgIdx)
+		{
+			$.act(ACT_SET, GPON_IOT_CFG_LIST, iotcfglistobj.__stack, null, ["cfgIdx=" + cfg.chooseIdx]);
+			if ($.exe())
+			{
+				return -1;
+			}
+			
+			return 0;
+		}
+	}
+	
+	return -1;
+}
+function btnOkCancelClick(btn, rowId)
+{
+	var stack = $.h($.id('l_' + tdStackPrefix + rowId));
+	if ((btnOkIdPrefix + rowId) == btn.id)			
+	{
+		if (!iotEntryValidation(rowAfterEdit))
+		{
+			return;	
+		}
+		if (iotEntryExists(rowAfterEdit["meId"]))
+		{
+			alert("[ME ID = " + rowAfterEdit["meId"] + "] already exists in iot table!");
+			return;
+		}
+		
+		if (NEW_ROW_ID == rowId)		
+		{
+			var entry = new GponIotEntry();
+			for (var field in tdIdPrefix)
+			{
+				entry[field] = rowAfterEdit[field];
+			}
+			$.act(ACT_ADD, GPON_OMCI_ME, null, null, entry);
+		}
+		
+		if (! $.exe())
+		{
+			SaveOKNotify();
+			$.loadMain();	
+		}
+	}
+	else if ((btnCancelIdPrefix + rowId) == btn.id)			
+	{
+		if (NEW_ROW_ID == rowId)			
+		{
+			$.id(iotTableId).deleteRow($.id(rowIdPrefix + rowId).rowIndex);
+		}
+		else
+		{
+			for (var field in tdIdPrefix)
+			{
+				cell = $.id(tdIdPrefix[field] + rowId);
+				$.h(cell, rowBeforeEdit[field]);
+			}
+			
+			cell = $.id(tdOprPrefix + rowId);
+			$.h(cell, rowBtnOprHtml([{id: btnEditIdPrefix + rowId, val: "Edit"}, {id: btnDelIdPrefix + rowId, val: "Delete"}], rowId, "btnEditDeleteClick"));
+		}
+	}
+	rowPending = false;
+	$.id(btnAddId).disabled = false;
+	$.id(btnApplyId).disabled = false;
+}
+
+function btnEditDeleteClick(btn, rowId)
+{
+	if (rowPending)
+	{
+		alert("You can not edit or delete when editing another!");
+		return;
+	}
+	
+	if ((btnDelIdPrefix + rowId) == btn.id)					
+	{
+		if (confirm("Are you sure to delete this entry?"))
+		{
+			var stack = $.h($.id(tdStackPrefix + rowId));
+			$.act(ACT_DEL, GPON_OMCI_ME, stack, null);
+			if (! $.exe())
+			{
+				SaveOKNotify();
+				$.loadMain();
+			}
+		}
+		return;
+	}
+	
+	if ((btnEditIdPrefix + rowId) == btn.id)				
+	{
+		var param = [];
+		param[0] = findMeEntryByStack($.h($.id(tdStackPrefix + rowId)));
+		$.loadMain("gpon_iot_edit.htm", param);
+	}
+}
+
+function btnAddClick()
+{
+	var table, row, cell, rowId;
+	var html;
+	
+	table = $.id(iotTableId);
+	row = table.insertRow(-1);
+	
+	rowId = NEW_ROW_ID;
+
+	for (var field in tdIdPrefix)
+	{
+		cell = row.insertCell(-1);
+		cell.id = tdIdPrefix[field] + rowId;
+		switch (field)
+		{
+		case "meId":
+			html = txbHtml("txb_" + field, "", "rowTxbChange");
+			rowAfterEdit[field] = rowBeforeEdit[field] = "";
+			break;
+
+		default:
+			html = "";
+			break;
+		}
+		$.html(cell, html);
+	}
+
+	cell = row.insertCell(-1);
+	cell.id = tdOprPrefix + rowId;
+	html = rowBtnOprHtml([{id: btnOkIdPrefix + rowId, val: "Ok"}, {id: btnCancelIdPrefix + rowId, val: "Cancel"}], rowId, "btnOkCancelClick");
+	$.html(cell, html);
+	
+	cell = row.insertCell(-1);
+	cell.id = tdStackPrefix + rowId;
+	$.html(cell, "");
+	$.addClass(cell, "nd");
+			
+	row.id = rowIdPrefix + rowId;
+	
+	$.id(btnAddId).disabled = true;
+	$.id(btnApplyId).disabled = true;
+	$.id("txb_meId").focus();
+	rowPending = true;
+}
+
+function btnApplyClick()
+{
+	if(confirm("Restart the gpon connection now ?"))
+	{
+		$.act(ACT_OP, ACT_OP_OMCI_RESTART);
+		$.exe();
+	}
+}
+
+function buildIotTableOneRow(table, entry, rowId)
+{
+	var row = table.insertRow(-1);
+	for(var field in tdIdPrefix)
+	{
+		cell = row.insertCell(-1);
+		cell.id = tdIdPrefix[field] + rowId;
+		
+		/*
+		if (field == "meId")
+		{
+			cell.style.width = "90px";
+		}
+		*/
+		
+		if (field == "meDesc")
+		{
+			cell.style.textAlign = "left";
+			$.html(cell, entry[field].replace(new RegExp(";;", "g"), "<br/>"));
+		}
+		else
+		{
+			$.html(cell, entry[field]);
+		}
+	}
+	var reserved = (entry["meReserved"] == 0) ? false : true;
+	var delDisabled = (reserved == true) ? true : false;
+
+	if (entry["meName"] == "Unknown")
+	{
+		delDisabled = false;
+	}
+
+	cell = row.insertCell(-1);
+	cell.id = tdOprPrefix + rowId;
+	/* cell.style.width = "150px"; */
+	
+	$.html(cell, rowBtnOprHtml([{id: btnEditIdPrefix + rowId, val: "Edit"}, {id: btnDelIdPrefix + rowId, val: "Delete", disabled: delDisabled}], rowId, "btnEditDeleteClick"));
+	
+	cell = row.insertCell(-1);
+	cell.id = tdStackPrefix + rowId;
+	$.html(cell, entry.__stack);
+	$.addClass(cell, "nd");
+	
+	row.id = rowIdPrefix + rowId;
+}
+
+function findMeEntryByStack(stack)
+{
+	var idx = 0;
+	var entry = null;
+	for (idx = 0; idx < meEntries.length; idx++)
+	{
+		entry = meEntries[idx];
+		if (entry.__stack == stack)
+		{
+			break;	
+		}
+	}
+	
+	return entry;
+}
+
+function loadIotEditTable()
+{
+	var entry;
+	var table, row, cell;
+
+	meEntries = $.act(ACT_GL, GPON_OMCI_ME_RT, null, null);
+	if (! $.exe())
+	{
+		var rowId = 0;
+		table = $.id(iotTableId);
+		for (var idx = 0; idx < meEntries.length; idx++)
+		{
+			entry = meEntries[idx];
+			buildIotTableOneRow(table, entry, rowId);
+			rowId++;
+		}
+	}
+	else
+	{
+		alert("internal error!");	
+	}
+}
+/* Function for iot edit end */
+
+var MGMT_MODE_REMOTE = 0;
+var MGMT_MODE_LOCAL = 1;
+var DIR_US = "0";
+var DIR_DS = "1";
+var PKT_DRP = "0";
+var PKT_FWD = "1";
+
+var VID_NULL = "0"
+var PRI_NULL = "8"
+
+var ETH_PROTO_ALL = 0;
+var ETH_PROTO_IP = 0x0800;
+
+var VLAN_OP_ASIS                               = 0;
+var VLAN_OP_DISCARD                            = 1;      
+var VLAN_OP_ADD                                = 2;  
+var VLAN_OP_ADD_COPY_DSCP                      = 3;
+var VLAN_OP_ADD_COPY_OUTER_PBIT                = 4;
+var VLAN_OP_ADD_COPY_INNER_PBIT                = 5;
+var VLAN_OP_ADD_2_TAGS                         = 6;
+var VLAN_OP_ADD_2_TAGS_COPY_DSCP               = 7;
+var VLAN_OP_ADD_2_TAGS_COPY_PBIT               = 8;
+var VLAN_OP_REM                                = 9;
+var VLAN_OP_REM_2_TAGS                         = 10;
+var VLAN_OP_REPLACE                            = 11;
+var VLAN_OP_REPLACE_VID                        = 12;
+var VLAN_OP_REPLACE_PBIT                       = 13;
+var VLAN_OP_REPLACE_INNER_ADD_OUTER            = 14;
+var VLAN_OP_REPLACE_INNER_ADD_OUTER_COPY_PBIT  = 15;
+var VLAN_OP_REPLACE_INNER_REM_OUTER            = 16;
+var VLAN_OP_REPLACE_2TAGS                      = 17;
+var VLAN_OP_REPLACE_2TAGS_VID                  = 18;
+var VLAN_OP_SWAP                               = 19;
+
+var igrOuterVidHtml = "--";
+var igrOuterPriHtml = "--";
+var igrInnerVidHtml = "--";
+var igrInnerPriHtml = "--";
+var egrOuterVidHtml = "--";
+var egrOuterPriHtml = "--";
+var egrInnerVidHtml = "--";
+var egrInnerPriHtml = "--";
+
+function initAllVidPriHtml()
+{
+	igrOuterVidHtml = "--";
+	igrOuterPriHtml = "--";
+	igrInnerVidHtml = "--";
+	igrInnerPriHtml = "--";
+	egrOuterVidHtml = "--";
+	egrOuterPriHtml = "--";
+	egrInnerVidHtml = "--";
+	egrInnerPriHtml = "--";
+}
+
+function initEgrVidPriHtml()
+{
+	egrOuterVidHtml = "--";
+	egrOuterPriHtml = "--";
+	egrInnerVidHtml = "--";
+	egrInnerPriHtml = "--";
+}
+function setEgrVidPriHtml(igrOuterVid, igrOuterPri, igrInnerVid, igrInnerPri, tagNum, vlanOpr, egrOuterVid, egrOuterPri, egrInnerVid, egrInnerPri)
+{
+	initAllVidPriHtml();
+	
+	if (tagNum == 2)
+	{
+		igrOuterVidHtml = (igrOuterVid == VID_NULL) ? "All" : igrOuterVid;
+		igrOuterPriHtml = (igrOuterPri == PRI_NULL) ? "All" : igrOuterPri;
+	}
+	
+	if (tagNum == 1 || tagNum == 2)
+	{
+		igrInnerVidHtml = (igrInnerVid == VID_NULL) ? "All" : igrInnerVid;
+		igrInnerPriHtml = (igrInnerPri == PRI_NULL) ? "All" : igrInnerPri;
+	}
+	
+	switch (parseInt(vlanOpr))
+	{
+	case VLAN_OP_ASIS:
+		if (tagNum == 2)
+		{
+			egrOuterVidHtml = igrOuterVidHtml;
+			egrOuterPriHtml = igrOuterPriHtml;
+		}
+		
+		if (tagNum == 1 || tagNum == 2)
+		{
+			egrInnerVidHtml = igrInnerVidHtml;
+			egrInnerPriHtml = igrInnerPriHtml;
+		}
+		break;
+		
+	case VLAN_OP_DISCARD:
+		break;
+	
+	case VLAN_OP_ADD:
+		egrInnerVidHtml = egrInnerVid;
+		egrInnerPriHtml = egrInnerPri;
+		break;
+		
+	case VLAN_OP_ADD_COPY_DSCP:
+		egrInnerVidHtml = egrInnerVid;
+		/* egrInnerPriHtml = egrInnerPri; */
+		break;
+		
+	case VLAN_OP_ADD_COPY_OUTER_PBIT:
+		egrInnerVidHtml = egrInnerVid;
+		egrInnerPriHtml = igrOuterPriHtml;
+		break;
+		
+	case VLAN_OP_ADD_COPY_INNER_PBIT:
+		egrInnerVidHtml = egrInnerVid;
+		egrInnerPriHtml = igrInnerPriHtml;
+		break;
+		
+	case VLAN_OP_ADD_2_TAGS:
+		egrInnerVidHtml = egrInnerVid;
+		egrInnerPriHtml = egrInnerPri;
+		egrOuterVidHtml = egrOuterVid;
+		egrOuterPriHtml = egrOuterPri;
+		break;
+		
+	case VLAN_OP_ADD_2_TAGS_COPY_DSCP:
+		egrInnerVidHtml = egrInnerVid;
+		/* egrInnerPriHtml = egrInnerPri; */
+		egrOuterVidHtml = egrOuterVid;
+		/* egrOuterPriHtml = egrOuterPri; */
+		break;
+		
+	case VLAN_OP_ADD_2_TAGS_COPY_PBIT:
+		egrInnerVidHtml = egrInnerVid;
+		egrInnerPriHtml = igrInnerPriHtml;
+		egrOuterVidHtml = egrOuterVid;
+		egrOuterPriHtml = igrOuterPriHtml;
+		break;
+		
+	case VLAN_OP_REM:
+		if (tagNum == 2)
+		{
+			egrInnerVidHtml = igrOuterVidHtml;
+			egrInnerPriHtml = igrOuterPriHtml;
+		}
+		break;
+		
+	case VLAN_OP_REM_2_TAGS:
+		break;
+		
+	case VLAN_OP_REPLACE:
+		egrInnerVidHtml = egrInnerVid;
+		egrInnerPriHtml = egrInnerPri;
+		break;
+		
+	case VLAN_OP_REPLACE_VID:
+		egrInnerVidHtml = egrInnerVid;
+		egrInnerPriHtml = igrInnerPriHtml;
+		break;
+		
+	case VLAN_OP_REPLACE_PBIT:
+		egrInnerVidHtml = igrInnerVidHtml;
+		egrInnerPriHtml = egrInnerPri;
+		break;
+		
+	case VLAN_OP_REPLACE_INNER_ADD_OUTER:
+		egrOuterVidHtml = egrOuterVid;
+		egrOuterPriHtml = egrOuterPri;
+		egrInnerVidHtml = egrInnerVid;
+		egrInnerPriHtml = egrInnerPri;
+		break;
+		
+	case VLAN_OP_REPLACE_INNER_ADD_OUTER_COPY_PBIT:
+		egrOuterVidHtml = egrOuterVid;
+		egrOuterPriHtml = igrInnerPriHtml;
+		egrInnerVidHtml = egrInnerVid;
+		egrInnerPriHtml = egrInnerPri;
+		break;
+		
+	case VLAN_OP_REPLACE_INNER_REM_OUTER:
+		egrInnerVidHtml = egrInnerVid;
+		egrInnerPriHtml = egrInnerPri;
+		break;
+		
+	case VLAN_OP_REPLACE_2TAGS:
+		egrOuterVidHtml = egrOuterVid;
+		egrOuterPriHtml = egrOuterPri;
+		egrInnerVidHtml = egrInnerVid;
+		egrInnerPriHtml = egrInnerPri;
+		break;
+		
+	case VLAN_OP_REPLACE_2TAGS_VID:
+		egrOuterVidHtml = egrOuterVid;
+		egrOuterPriHtml = igrOuterPriHtml;
+		egrInnerVidHtml = egrInnerVid;
+		egrInnerPriHtml = igrInnerPriHtml;
+		break;
+		
+	case VLAN_OP_SWAP:
+		egrOuterVidHtml = igrInnerVidHtml;
+		egrOuterPriHtml = igrInnerPriHtml;
+		egrInnerVidHtml = igrOuterVidHtml;
+		egrInnerPriHtml = igrOuterPriHtml;
+		break;
+		
+	default:
+		break;
+	}
+}
+
+function vlanOprStrGet(vlanOpr)
+{
+	var str = "Unknown";
+	switch (vlanOpr)
+	{
+	case VLAN_OP_ASIS:
+		str = "Transparent";
+		break;
+		
+	case VLAN_OP_DISCARD:
+		str = "Discard";
+		break;
+	
+	case VLAN_OP_ADD:
+	case VLAN_OP_ADD_COPY_DSCP:
+	case VLAN_OP_ADD_COPY_OUTER_PBIT:
+	case VLAN_OP_ADD_COPY_INNER_PBIT:
+		str = "Add 1-TAG";
+		break;
+		
+	case VLAN_OP_ADD_2_TAGS:
+	case VLAN_OP_ADD_2_TAGS_COPY_DSCP:
+	case VLAN_OP_ADD_2_TAGS_COPY_PBIT:
+		str = "Add 2-TAG";
+		break;
+		
+	case VLAN_OP_REM:
+		str = "Remove 1-TAG";
+		break;
+		
+	case VLAN_OP_REM_2_TAGS:
+		str = "Remove 2-TAG";
+		break;
+		
+	case VLAN_OP_REPLACE:
+	case VLAN_OP_REPLACE_VID:
+	case VLAN_OP_REPLACE_PBIT:
+	case VLAN_OP_REPLACE_INNER_ADD_OUTER:
+	case VLAN_OP_REPLACE_INNER_ADD_OUTER_COPY_PBIT:
+	case VLAN_OP_REPLACE_INNER_REM_OUTER:
+	case VLAN_OP_REPLACE_2TAGS:
+	case VLAN_OP_REPLACE_2TAGS_VID:
+		str = "Modify";
+		break;
+		
+	case VLAN_OP_SWAP:
+		str = "Swap";
+		break;
+	}
+	
+	return str;
+}
+
+function ruleDirection(rule){ return rule.direction;}
+function ruleIgrPort(rule){return rule.igrPort;}
+function ruleIgrTagNum(rule){return rule.igrTagNum;}
+function ruleIgrOuterVid(rule){ return rule.igrOuterVid;}
+function ruleIgrOuterPri(rule){return rule.igrOuterPri;}
+function ruleIgrInnerVid(rule){return rule.igrInnerVid;}
+function ruleIgrInnerPri(rule){ return rule.igrInnerPri;}
+function ruleEthType(rule){return rule.ethType;}
+function ruleAction(rule){return rule.action;}
+function ruleVlanOpr(rule){return rule.vlanOpr;}
+function ruleEgrOuterVid(rule){ return rule.egrOuterVid;}
+function ruleEgrOuterPri(rule){return rule.egrOuterPri;}
+function ruleEgrInnerVid(rule){return rule.egrInnerVid;}
+function ruleEgrInnerPri(rule){ return rule.egrInnerPri;}
+function ruleEgrPort(rule){ return rule.egrPort;}
+function ruleEgrQueue(rule){return rule.egrQueue;}
+function ruleEgrTcont(rule){return rule.egrTcont;}
+function ruleIsDefault(rule){ return rule.isDefault;}
+
+/* ethType -- decimal value. For example, 2048(0x0800) is IP */
+function ethTypeGet(ethType)
+{
+	var ethTypeStr = "Unknown";
+	switch (ethType)
+	{
+	case ETH_PROTO_ALL:
+		ethTypeStr = "All";
+		break;
+		
+	case ETH_PROTO_IP:
+		ethTypeStr = "IP";
+		break;
+	
+	default:
+		break;
+	}
+	
+	return ethTypeStr;
+}
+
+function rowBtnEditHtml(btn, table, rowId, disabled, onclick)
+{
+	var html="";
+	html += '<input type="button" id="' + btn.id + '"' + (disabled ? 'disabled="true"' : '') + ' class="button" value="' + btn.val + '" onclick = "' + onclick + '(this, \'' + table + '\', ' + rowId + ');"/>';
+	return html;
+}
+
+function changeDirection(direction)
+{
+	if (direction == DIR_US)
+	{
+		$.removeClass($.id("fwRuleTableUs"), "nd");
+		$.addClass($.id("fwRuleTableDs"), "nd");
+		$.addClass($.id("fwRuleTableLocal"), "nd");
+	}
+	else if (direction == DIR_DS)
+	{
+		$.removeClass($.id("fwRuleTableDs"), "nd");
+		$.addClass($.id("fwRuleTableUs"), "nd");
+		$.addClass($.id("fwRuleTableLocal"), "nd");
+	}
+}
+
+function selDirectionChanged()
+{
+	var direction = $.id("direction").value;	
+	changeDirection(direction);
+}
+
+function btnRefreshClick()
+{
+	$.curSelectedDirection = $.id("direction").value;
+	$.loadMain();	
+}
+
+function buildFwRuleRow(table, rule, rowId, direction)
+{
+	var tagNum = 0;
+	var row, cell;
+	var xtagIdx = 0, xtagRuleNum = 0, xtagRules;
+	var igrPortCell = null, untagCell = null, onetagCell = null, twotagCell = null;
+	var ruleDefault = null;
+	var action;
+	for (tagNum = 0; tagNum <= 2; tagNum++)
+	{
+		if (tagNum == 0)
+		{
+			xtagRuleNum = rule.untagRules.length;
+			xtagRules = rule.untagRules;
+		}
+		else if (tagNum == 1)
+		{
+			xtagRuleNum = rule.onetagRules.length;
+			xtagRules = rule.onetagRules;
+		}
+		else
+		{
+			xtagRuleNum = rule.twotagRules.length;
+			xtagRules = rule.twotagRules;
+		}
+		for (xtagIdx = 0; xtagIdx < xtagRuleNum; xtagIdx++)
+		{
+			var vidHtml, priHtml;
+			
+			row = table.insertRow(-1);
+			if (xtagIdx == 0)
+			{
+				if (null == igrPortCell)
+				{
+					igrPortCell = row.insertCell(-1);
+				}
+				
+				if (tagNum == 0)
+				{
+					untagCell = row.insertCell(-1);
+				}	
+				else if (tagNum == 1)
+				{
+					onetagCell = row.insertCell(-1);	
+				}
+				else
+				{
+					twotagCell = row.insertCell(-1);
+				}
+			}
+			
+			setEgrVidPriHtml(xtagRules[xtagIdx].igrOuterVid, xtagRules[xtagIdx].igrOuterPri, 
+							 xtagRules[xtagIdx].igrInnerVid, xtagRules[xtagIdx].igrInnerPri,
+							 tagNum, xtagRules[xtagIdx].vlanOpr, 
+							 xtagRules[xtagIdx].egrOuterVid, xtagRules[xtagIdx].egrOuterPri, 
+							 xtagRules[xtagIdx].egrInnerVid, xtagRules[xtagIdx].egrInnerPri);
+			
+			cell = row.insertCell(-1);
+			$.html(cell, igrOuterVidHtml);
+			cell = row.insertCell(-1);
+			$.html(cell, igrOuterPriHtml);
+			cell = row.insertCell(-1);
+			$.html(cell, igrInnerVidHtml);
+			cell = row.insertCell(-1);
+			$.html(cell, igrInnerPriHtml);
+			
+			cell = row.insertCell(-1);
+			$.html(cell, ethTypeGet(parseInt(xtagRules[xtagIdx].ethType)));
+			
+			cell = row.insertCell(-1);
+			action = xtagRules[xtagIdx].action;
+			$.html(cell, (action == PKT_FWD) ? "Forward" : "Discard");
+			
+			cell = row.insertCell(-1);
+			$.html(cell, (action == PKT_FWD) ? vlanOprStrGet(parseInt(xtagRules[xtagIdx].vlanOpr)) : "--");
+			
+			cell = row.insertCell(-1);
+			$.html(cell, egrOuterVidHtml);
+			cell = row.insertCell(-1);
+			$.html(cell, egrOuterPriHtml);
+			cell = row.insertCell(-1);
+			$.html(cell, egrInnerVidHtml);
+			cell = row.insertCell(-1);
+			$.html(cell, egrInnerPriHtml);
+			
+			cell = row.insertCell(-1);
+			$.html(cell, (action == PKT_FWD) ? xtagRules[xtagIdx].egrPort : "--");
+			
+			if (direction == DIR_US)
+			{
+				cell = row.insertCell(-1);
+				$.html(cell, (action == PKT_FWD) ? xtagRules[xtagIdx].egrTcont : "--");
+			}
+			
+			cell = row.insertCell(-1);
+			$.html(cell, (action == PKT_FWD) ? xtagRules[xtagIdx].egrQueue : "--");
+			
+		}	
+
+		/* Default rule */
+		if (tagNum == 0)
+		{
+			ruleDefault = rule.untagRuleDefault;
+		}
+		else if (tagNum == 1)
+		{
+			ruleDefault = rule.onetagRuleDefault;
+		}
+		else
+		{
+			ruleDefault = rule.twotagRuleDefault;
+		}
+		
+		if (null == ruleDefault)
+		{
+			continue;	
+		}
+		
+		row = table.insertRow(-1);
+
+		if (null == igrPortCell)
+		{
+			igrPortCell = row.insertCell(-1);
+		}
+		
+		if (tagNum == 0 && null == untagCell)
+		{
+			untagCell = row.insertCell(-1);
+		}
+		else if (tagNum == 1 && null == onetagCell)
+		{
+			onetagCell = row.insertCell(-1);	
+		}
+		else if (tagNum == 2 && null == twotagCell)
+		{
+			twotagCell = row.insertCell(-1);
+		}
+		
+		initEgrVidPriHtml();
+
+		setEgrVidPriHtml(ruleDefault.igrOuterVid, ruleDefault.igrOuterPri, 
+							 ruleDefault.igrInnerVid, ruleDefault.igrInnerPri,
+							 tagNum, ruleDefault.vlanOpr, 
+							 ruleDefault.egrOuterVid, ruleDefault.egrOuterPri, 
+							 ruleDefault.egrInnerVid, ruleDefault.egrInnerPri);
+
+		cell = row.insertCell(-1);
+		$.html(cell, "Default Rule");
+		cell.colSpan = 5;
+		
+		cell = row.insertCell(-1);
+		action = ruleDefault.action;
+		$.html(cell, (action == PKT_FWD) ? "Forward" : "Discard");
+		
+		cell = row.insertCell(-1);
+		$.html(cell, (action == PKT_FWD) ? vlanOprStrGet(parseInt(ruleDefault.vlanOpr)) : "--");
+		
+		cell = row.insertCell(-1);
+		$.html(cell, egrOuterVidHtml);
+		cell = row.insertCell(-1);
+		$.html(cell, egrOuterPriHtml);
+		cell = row.insertCell(-1);
+		$.html(cell, egrInnerVidHtml);
+		cell = row.insertCell(-1);
+		$.html(cell, egrInnerPriHtml);
+	
+		cell = row.insertCell(-1);
+		$.html(cell, (action == PKT_FWD) ? ruleDefault.egrPort : "--");
+		
+		if (direction == DIR_US)
+		{
+			cell = row.insertCell(-1);
+			$.html(cell, (action == PKT_FWD) ? ruleDefault.egrTcont : "--");
+		}
+		
+		cell = row.insertCell(-1);
+		$.html(cell, (action == PKT_FWD) ? ruleDefault.egrQueue : "--");
+	}	
+	
+	var untagSumNum = rule.untagNum + (rule.untagRuleDefault == null ? 0 : 1);
+	var onetagSumNum = rule.onetagNum + (rule.onetagRuleDefault == null ? 0 : 1); 
+	var twotagSumNum = rule.twotagNum + (rule.twotagRuleDefault == null ? 0 : 1);
+	var ruleSumNum = untagSumNum + onetagSumNum + twotagSumNum;
+	if (null != igrPortCell) 
+	{
+		$.html(igrPortCell, rule.igrPort);
+		igrPortCell.rowSpan = ruleSumNum;
+	}
+	if (null != untagCell) 
+	{
+		$.html(untagCell, "Untagged");
+		untagCell.rowSpan = untagSumNum;
+	}
+	if (null != onetagCell) 
+	{
+		$.html(onetagCell, "1-TAG");
+		onetagCell.rowSpan = onetagSumNum;
+	}
+	if (null != twotagCell) 
+	{
+		$.html(twotagCell, "2-TAG");
+		twotagCell.rowSpan = twotagSumNum;
+	}
+
+	return ruleSumNum;
+}
+function buildFwRuleRowUs(table, rule, rowId)
+{
+	return buildFwRuleRow(table, rule, rowId, DIR_US);
+}
+
+function buildFwRuleRowDs(table, rule, rowId)
+{
+	return buildFwRuleRow(table, rule, rowId, DIR_DS);
+}
+
+function addFwRuleDefault(ruleSet)
+{
+	var ruleDefault = null;
+	var tagNum = 0;
+	for (idx = 0; idx < ruleSet.num; idx++)
+	{
+		for (tagNum = 0; tagNum <= 2; tagNum++)
+		{
+			if (tagNum == 0 && null == ruleSet[idx].untagRuleDefault)
+			{
+				ruleSet[idx].untagRuleDefault = new Object();
+				ruleDefault = ruleSet[idx].untagRuleDefault;
+			}
+			else if (tagNum == 1 && null == ruleSet[idx].onetagRuleDefault)
+			{
+				ruleSet[idx].onetagRuleDefault = new Object();
+				ruleDefault = ruleSet[idx].onetagRuleDefault;
+			}
+			else if (tagNum == 2 && null == ruleSet[idx].twotagRuleDefault)
+			{
+				ruleSet[idx].twotagRuleDefault = new Object();
+				ruleDefault = ruleSet[idx].twotagRuleDefault;
+			}
+			if (null != ruleDefault)
+			{
+				ruleDefault.igrOuterVid = VID_NULL;
+				ruleDefault.igrOuterPri = PRI_NULL;
+				ruleDefault.igrInnerVid = VID_NULL;
+				ruleDefault.igrInnerPri = PRI_NULL;
+				ruleDefault.ethType = ETH_PROTO_ALL;
+				ruleDefault.action = PKT_DRP;
+				ruleDefault.egrOuterVid = VID_NULL;
+				ruleDefault.egrOuterPri = PRI_NULL;
+				ruleDefault.egrInnerVid = VID_NULL;
+				ruleDefault.egrInnerPri = PRI_NULL;
+				ruleDefault.egrPort = 0;
+				ruleDefault.egrQueue = 0;
+				ruleDefault.egrTcont = 0;
+				ruleSet[idx].ruleNum++;
+			}
+		}
+	}	
+	
+	return ruleSet;
+}
+function buildFwRuleSet(rules)
+{
+	var idx = 0, jdx = 0;
+	var rule;
+	var ruleSet = new Array();
+	var xtagRule;
+	ruleSet.num = 0;
+	
+	for (idx = 0; idx < rules.length; idx++)
+	{
+		rule = rules[idx];
+		for (jdx = 0; jdx < ruleSet.num; jdx++)
+		{
+			if (ruleSet[jdx].igrPort == ruleIgrPort(rule) && ruleSet[jdx].direction == ruleDirection(rule))
+			{
+				break;	
+			}
+		}
+		
+		if (jdx >= ruleSet.num)
+		{
+			ruleSet[jdx] = new Object();
+			ruleSet[jdx].ruleNum = 0;
+			ruleSet[jdx].untagRules = new Array();
+			ruleSet[jdx].untagRuleDefault = null;
+			ruleSet[jdx].untagNum = 0;
+			ruleSet[jdx].onetagRules = new Array();
+			ruleSet[jdx].onetagRuleDefault = null;
+			ruleSet[jdx].onetagNum = 0;
+			ruleSet[jdx].twotagRules = new Array();
+			ruleSet[jdx].twotagRuleDefault = null;
+			ruleSet[jdx].twotagNum = 0;
+			ruleSet.num++;
+		}
+		
+		ruleSet[jdx].direction = ruleDirection(rule);
+		ruleSet[jdx].igrPort = ruleIgrPort(rule);
+		
+		if (ruleIgrTagNum(rule) == "0")
+		{
+			if (ruleIsDefault(rule) == "1")
+			{
+				ruleSet[jdx].untagRuleDefault = new Object();	
+				xtagRule = ruleSet[jdx].untagRuleDefault;
+			}
+			else
+			{
+				ruleSet[jdx].untagRules[ruleSet[jdx].untagNum] = new Object();
+				xtagRule = ruleSet[jdx].untagRules[ruleSet[jdx].untagNum];
+				ruleSet[jdx].untagNum++;
+			}
+		}
+		else if (ruleIgrTagNum(rule) == "1")
+		{
+			if (ruleIsDefault(rule) == "1")
+			{
+				ruleSet[jdx].onetagRuleDefault = new Object();	
+				xtagRule = ruleSet[jdx].onetagRuleDefault;
+			}
+			else
+			{
+				ruleSet[jdx].onetagRules[ruleSet[jdx].onetagNum] = new Object();
+				xtagRule = ruleSet[jdx].onetagRules[ruleSet[jdx].onetagNum];
+				ruleSet[jdx].onetagNum++;
+			}
+		}
+		else
+		{
+			if (ruleIsDefault(rule) == "1")
+			{
+				ruleSet[jdx].twotagRuleDefault = new Object();	
+				xtagRule = ruleSet[jdx].twotagRuleDefault;
+			}
+			else
+			{
+				ruleSet[jdx].twotagRules[ruleSet[jdx].twotagNum] = new Object();
+				xtagRule = ruleSet[jdx].twotagRules[ruleSet[jdx].twotagNum];
+				ruleSet[jdx].twotagNum++;
+			}
+		}
+		ruleSet[jdx].ruleNum++;
+		xtagRule.igrOuterVid = ruleIgrOuterVid(rule);
+		xtagRule.igrOuterPri = ruleIgrOuterPri(rule);
+		xtagRule.igrInnerVid = ruleIgrInnerVid(rule);
+		xtagRule.igrInnerPri = ruleIgrInnerPri(rule);
+		xtagRule.ethType = ruleEthType(rule);
+		xtagRule.action = ruleAction(rule);
+		xtagRule.vlanOpr = ruleVlanOpr(rule);
+		xtagRule.egrOuterVid = ruleEgrOuterVid(rule);
+		xtagRule.egrOuterPri = ruleEgrOuterPri(rule);
+		xtagRule.egrInnerVid = ruleEgrInnerVid(rule);
+		xtagRule.egrInnerPri = ruleEgrInnerPri(rule);
+		xtagRule.egrPort = ruleEgrPort(rule);
+		xtagRule.egrQueue = ruleEgrQueue(rule);
+		xtagRule.egrTcont = ruleEgrTcont(rule);
+	}
+	
+	ruleSet = addFwRuleDefault(ruleSet);
+	
+	return ruleSet;
+}
+
+function initFwRuleTable()
+{
+	var rules, table;
+	var idx = 0,  rowId = 0;
+	var ruleNumUs = 0, ruleNumDs = 0;
+	var ruleSet;
+	rules = $.act(ACT_GL, GPON_FW_RULE_ENTRY_REMOTE, null, null);
+	if (! $.exe())
+	{
+		ruleSet = buildFwRuleSet(rules);
+		for (idx = 0; idx <　ruleSet.num; idx++)
+		{
+			if(ruleSet[idx].direction == DIR_US)
+			{
+				table = $.id("fwRuleTableUs");
+				ruleNumUs += buildFwRuleRowUs(table, ruleSet[idx], rowId);
+			}
+			else if (ruleSet[idx].direction == DIR_DS)
+			{
+				table = $.id("fwRuleTableDs");
+				ruleNumDs += buildFwRuleRowDs(table, ruleSet[idx], rowId);
+			}
+		}
+	}
+}
+function init()
+{
+	var l_dbMeObjs = new Array();
+	initDmObjs(l_dbMeObjs);
+	
+	buildIotTable(l_dbMeObjs);
+	loadIotEditTable();
+	
+	if ($.curSelectedDirection == undefined)
+	{
+		$.curSelectedDirection = DIR_US;
+	}
+	initFwRuleTable();
+	$.id("direction").value = $.curSelectedDirection;
+	changeDirection($.curSelectedDirection);
+}
+init();
+</script>
+
+<p class="et T" id="et">Device Management Page</p>
+<div class="con1 XXXL">
+<p class="ct"></p>
+<p class="bl"></p>
+<div class="con2">
+<p class="L1 T" id="t_info">This table shows current GPON IOT config status.</p>
+<table id="iotViewTable" class="tc bdr XL" align="center" cellspacing="0" cellpadding="0">
+    <tr>
+        <th style="width:50px" id="">ME ID</th>
+        <th style="width:200px"id="">ME Name</th>
+        <th style="width:80px" id="">Instance ID</th>
+        <th style="width:80px" id="">Attribute ID</th>
+        <th id="" >Attribute Name</th>
+        <th id="">IOT Value</th>
+    </tr>
+</table>
+</div>
+
+<p class="bl"></p>
+<div class="con2">
+<p class="L1 T" id="t_info">This table manages the GPON IOT Settings.<span style="color:#F00">(Some are system's default, so they can not be deleted!)</span></p>
+<table id="iotTable" class="tc bdr XL" align="center" cellspacing="0" cellpadding="0">
+<tr>
+	<th class="T" id="thMeID">ME ID</th>
+	<th class="T" id="thMeName">ME Name</th>
+	<th class="T" id="thMeDesc">ME Description</th>
+    <th class="T" id="thMeDesc">Operation</th>
+</tr>
+</table>
+<p class="tail">
+<input type="button" id="btnAdd" class="button L T " value="Add" onclick="btnAddClick();" />
+<input type="button" id="btnApply" class="button L T " value="Apply" onclick="btnApplyClick();"/>
+</p>
+</div>
+
+
+
+<p class="bl"></p>
+<div class="con2">
+<p class="L1 T" id="t_info">This table shows VLAN forward rules.</p>
+<p class="L1 T">Direction: <select id="direction" style="width:100px" onchange="selDirectionChanged();">
+		<option value="0">Upstaream</option>
+		<option value="1">Downstream</option>
+	</select>
+</p>
+<table id="fwRuleTableUs" class="tc bdr XL" align="center" cellspacing="0" cellpadding="0">
+	<tr>
+        <td rowspan="3" style="width:60px">Eth Port</td>
+        <td colspan="6">Filter</td>
+        <td rowspan="3" style="width:50px">Handle</td>
+        <td colspan="5">Treatment</td>
+        <td colspan="3">Egress</td>
+    </tr>
+    <tr>
+        <td rowspan="2" style="width:65px">TAG Type</td>
+        <td colspan="2">Outer VLAN</td>
+        <td colspan="2">Inner VLAN</td>
+        <td rowspan="2" style="width:60px">Eth Type</td>
+        <td rowspan="2" style="width:100px">Operation</td>
+        <td colspan="2">Outer VLAN</td>
+        <td colspan="2">Inner VLAN</td>
+        <td rowspan="2" style="width:65px">GEM Port</td>
+        <td rowspan="2" style="width:60px">T-CONT</td>
+        <td rowspan="2">Queue</td>
+    </tr>
+    <tr>
+       	<td style="width:35px">VID</td>
+        <td style="width:50px">Priority</td>
+        <td style="width:35px">VID</td>
+        <td style="width:50px">Priority</td>
+        <td style="width:35px">VID</td>
+        <td style="width:50px">Priority</td>
+        <td style="width:35px">VID</td>
+        <td style="width:50px">Priority</td>
+    </tr>
+</table>
+<table id="fwRuleTableDs" class="tc bdr XL" align="center" cellspacing="0" cellpadding="0">
+    <tr>
+        <td rowspan="3" style="width:65px">GEM Port</td>
+        <td colspan="6">Filter</td>
+        <td rowspan="3" style="width:30px">Handle</td>
+        <td colspan="5">Treatment</td>
+        <td colspan="2">Egress</td>
+    </tr>
+    <tr>
+        <td rowspan="2" style="width:65px">TAG Type</td>
+        <td colspan="2">Outer VLAN</td>
+        <td colspan="2">Inner VLAN</td>
+        <td rowspan="2" style="width:60px">Eth Type</td>
+        <td rowspan="2" style="width:100px">Operation</td>
+        <td colspan="2">Outer VLAN</td>
+        <td colspan="2">Inner VLAN</td>
+        <td rowspan="2" style="width:60px">Eth Port</td>
+        <td rowspan="2">Queue</td>
+    </tr>
+    <tr>
+       	<td style="width:35px">VID</td>
+        <td style="width:50px">Priority</td>
+        <td style="width:35px">VID</td>
+        <td style="width:50px">Priority</td>
+        <td style="width:35px">VID</td>
+        <td style="width:50px">Priority</td>
+        <td style="width:35px">VID</td>
+        <td style="width:50px">Priority</td>
+    </tr>
+</table>
+<p class="tail" id="tail">
+<input type="button" class="button L T" value="Refresh" style="width:65px" id="refresh" onclick='btnRefreshClick()'/>
+</p>
+</div>
+<p class="bl"></p>
+</div>

@@ -1,0 +1,51 @@
+﻿<script language="javascript" type="text/javascript">
+
+var language_t = new Array(
+	["restart_title_",		"Reboot",		"重启ONU", 							innerHTML_t, noSubIndex],
+	["restart_info_",		"Reboot.", 		"单击此按钮将使ONU重新启动", 		innerHTML_t, noSubIndex],
+	["confirm_text_", 		"Are you sure to reboot?", "onu将会重启,您确定要继续吗?", value_t, noSubIndex],
+	["onu_boot_info_", 		"ONU is restarting", "设备重启中", 					value_t, noSubIndex],
+	["onu_boot_wait_", 		"Wait for the ONU restart...", "请等待设备重启...", value_t, noSubIndex],
+	["restart_button", 		"restart ONU", "重启ONU", 							value_t, noSubIndex]
+	);
+	
+
+function restart_onu()
+{	
+	var cfmText = $.id("confirm_text_").value;
+	var bootInfo = $.id("onu_boot_info_").value;
+	var bootWait = $.id("onu_boot_wait_").value;
+	
+	if(confirm(cfmText))
+	{
+		$.guage([bootInfo, bootWait], 100, 600, function(){$.refresh();});
+		$.act(ACT_OP, ACT_OP_REBOOT);
+		$.exe(true);
+	}
+}
+
+</script>
+<p class="et"><b>System Reboot</b></p>
+<div class="con1 M">
+<p class="ct" id="restart_title_"><b>System Reboot</b></p>
+<p class="bl"></p>
+<div class="con2">
+
+<p id="restart_info_">Click this button below to reboot ONU.</p>
+<p class="br"></p>
+<p class="center"><input type="button" id="restart_button" value="Reboot" class="button L" onclick="restart_onu()" /></p>
+</div>
+<p class="bl"></p>
+<p class="tail" id="tail"></p>
+</div>
+
+<input type="hidden" id="confirm_text_" value="ONU will reboot. Are you sure to continue?" />
+<input type="hidden" id="onu_boot_info_" value="ONU is restarting" />
+<input type="hidden" id="onu_boot_wait_" value="Wait for the ONU restart..." />
+
+<script language="javascript" type="text/javascript">
+
+</script>
+	
+	
+	

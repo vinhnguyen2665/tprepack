@@ -1,0 +1,196 @@
+﻿<script language="javascript" type="text/javascript">
+var language_t = new Array(
+	["lan_info_", 		"Ip Address And Mask", "LAN端IP地址和掩码", 	innerHTML_t, 	noSubIndex],
+	["ip_address_", 	"IP Address:",			"IP地址:", 				innerHTML_t,	noSubIndex],
+	["subnet_mask_", 	"Mask:", 				"子网掩码:", 			innerHTML_t,	noSubIndex],
+	["save", 			"Save",					"保存", 				value_t, 		noSubIndex]
+	);
+	
+var oldIpAddr="";
+var oldMask ="";
+var ipStack;
+
+var oldDhcpEn;
+var oldMinIp;
+var oldMaxIp;
+var oldLeaseTime;
+var dhcpStack;
+
+var DEFAULT_IP_INDEX = 0;
+var DEFAULT_LAN_INDEX = 0;
+var DEFAULT_DHCP_INDEX = 0;
+	
+function save_all()
+{
+	var msg;
+	var ipAddr = $.id("ip_address").value;
+	var ipMask = $.id("sub_mask").value;
+	var dhcpEn = ($.id("dhcp_enable").checked == true) ? 1 : 0;
+	var minIp = $.id("ip_min").value;
+	var maxIp = $.id("ip_max").value;
+	var leaseTime = $.id("lease_time").value;
+	var pattern = null;
+	
+	if ((oldIpAddr === ipAddr) && (oldMask === ipMask) && (oldDhcpEn == dhcpEn) && 
+		(oldMinIp === minIp) && (oldMaxIp === maxIp) && (oldLeaseTime == leaseTime))
+	{
+		return;
+	}
+	
+	if ($.ifip(ipAddr) || $.mask(ipMask) || $.ipmask(ipAddr,ipMask) || $.ifip(minIp) || 
+		$.ifip(maxIp) || $.ipmask(minIp,ipMask) || $.ipmask(maxIp,ipMask))
+	{
+		return;
+	}
+	
+	var ipAddrNum = $.ip2num(ipAddr);
+	var minIpNum = $.ip2num(minIp);
+	var maxIpNum = $.ip2num(maxIp);
+	if ((minIpNum <= ipAddrNum) && (ipAddrNum <= maxIpNum))
+	{
+		alert("LAN IP must in the range of DHCP IP Pool!");
+		return;
+	}
+	
+	pattern = new RegExp("^[0-9]+$","i");
+	
+	if (pattern.exec($.id("lease_time").value) == null)
+	{
+		alert("The lease time is invalid.\nIt must in the range of 1-2880.");
+		return;
+	}
+
+	if (leaseTime < 1 || leaseTime > 2880)
+	{
+		alert("The lease time must in the range of 1-2880.");
+		return;
+	}	
+	
+	leaseTime = leaseTime * 60;
+	
+	msg = $.id("boot_cfm_").value;
+	if (!confirm(msg))
+		return;
+		
+	/*BEGIN: modified by Luo Peng , 2015/04/02*/
+	$.act(ACT_SET, LAN_IP_INTF, ipStack,null, ["IPInterfaceIPAddress=" + ipAddr, "IPInterfaceSubnetMask=" + ipMask]);
+
+	$.act(ACT_SET, LAN_HOST_CFG, dhcpStack, null, ["DHCPServerEnable=" + dhcpEn, "minAddress=" + minIp, "maxAddress=" + maxIp, "DHCPLeaseTime=" + leaseTime]);
+
+	
+
+	/*END: modified by Luo Peng , 2015/04/02*/
+
+	if (!$.exe())
+	{
+		$.guage(["Device is rebooting", "Please wait..."], 100, 600, function(){location.href = "http:\/\/" + ipAddr;});
+		$.act(ACT_OP, ACT_OP_REBOOT);
+		$.exe(true);		
+	}
+}
+
+function init()
+{
+	var lanDevInfo = $.act(ACT_GL, LAN_DEV, null, null,["LANEthernetInterfaceNumberOfEntries"]);
+	var ipList;
+	var dhcpCfg;
+	
+	if (! $.exe())
+	{
+		ipList = $.act(ACT_GS, LAN_IP_INTF, null, lanDevInfo[DEFAULT_LAN_INDEX].__stack,["IPInterfaceIPAddress", "IPInterfaceSubnetMask"]);
+		if (!$.exe())
+		{
+			ipStack = ipList[DEFAULT_IP_INDEX].__stack;
+			oldIpAddr = ipList[DEFAULT_IP_INDEX].IPInterfaceIPAddress;
+			oldMask = 	ipList[DEFAULT_IP_INDEX].IPInterfaceSubnetMask;
+			$.id("ip_address").value = oldIpAddr;
+			$.id("sub_mask").value = oldMask;
+		}
+		
+		dhcpCfg = $.act(ACT_GS, LAN_HOST_CFG, null, lanDevInfo[DEFAULT_LAN_INDEX].__stack, ["DHCPServerEnable", "minAddress", "maxAddress", "DHCPLeaseTime"]);
+		if (!$.exe())
+		{
+			if (dhcpCfg[DEFAULT_DHCP_INDEX].DHCPServerEnable == true)
+			{
+				oldDhcpEn = 1;
+			}
+			else
+			{
+				oldDhcpEn = 0;
+			}
+			
+			oldMinIp = dhcpCfg[DEFAULT_DHCP_INDEX].minAddress;
+			oldMaxIp = dhcpCfg[DEFAULT_DHCP_INDEX].maxAddress;
+			oldLeaseTime = dhcpCfg[DEFAULT_DHCP_INDEX].DHCPLeaseTime / 60;
+			
+			$.id("dhcp_enable").checked = oldDhcpEn;
+			$.id("ip_min").value = oldMinIp;
+			$.id("ip_max").value = oldMaxIp;
+			$.id("lease_time").value = oldLeaseTime;
+			
+			dhcpStack = dhcpCfg[DEFAULT_DHCP_INDEX].__stack;
+		}
+	}
+}
+
+function change_ip()
+{
+	var curLanIp = $.ip2num($.id("ip_address").value);
+	var curMask = $.ip2num($.id("sub_mask").value);
+	var curMinIp = $.ip2num($.id("ip_min").value);
+	var curMaxIp = $.ip2num($.id("ip_max").value);
+	
+	/*BEGIN: modified by Luo Peng , 2015/04/02*/
+
+	if ($.ifip($.id("ip_address").value))
+	{
+		alert("LAN IP address is invalid!");
+		return;
+	}
+
+	if ($.ipmask($.id("ip_address").value, $.id("sub_mask").value))
+	{
+		return;
+	}
+	
+	/*END: modified by Luo Peng , 2015/04/02*/
+
+	curMinIp = (curLanIp & curMask) + (curMinIp & ~curMask);
+	curMaxIp = (curLanIp & curMask) + (curMaxIp & ~curMask);
+	
+	$.id("ip_min").value = $.num2ip(curMinIp);
+	$.id("ip_max").value = $.num2ip(curMaxIp);
+}
+
+</script>
+<p class="et"><b>LAN Setting</b></p>
+<div class="con1 M">
+<p class="ct"><b>LAN</b></p>
+<p class="bl"></p>
+<div class="con2">
+<p id="lan_info_"><span style="font-size:16px; font-weight:bold">LAN IP Address and Mask</span></p>
+
+<p class="L1"><b class="M item" id="ip_address_">IP Address:</b><input type='text' id="ip_address" size="15" maxlength="15" onchange="change_ip()"/></p>
+<p class="L1"><b class="M item" id="subnet_mask_">Mask:</b><input type='text' id="sub_mask" size="15" maxlength="15" /></p>
+</div>
+<p class="bl"></p>
+<div class="con2" id="div_dhcp" >
+<p class="itemR bd" id="authCfg"><span style="font-size:16px; font-weight:bold">DHCP Server</span></p>
+<p class="br"></p>
+<p class="L1"><b class="M item" id="dhcp_on">Enable</b><input type="checkbox" id="dhcp_enable"></p>
+<p class="L1"><b class="M item" id="ip_min_">Start IP Address: </b><input type='text' class="text" id="ip_min" size="15" maxlength="15" value="192.168.1.100" /></p>
+<p class="L1"><b class="M item" id="ip_max_">End IP Address: </b><input type='text' class="text" id="ip_max" size="15" maxlength="15" value="192.168.1.199" /></p>
+<p class="L1"><b class="M item" id="lease_time_">Lease Time: </b><input type='text' class="text" id="lease_time" size="5" maxlength="4" value="120" />minutes (1~2880 minutes, the default value is 120)</p>
+</div>
+<p class="bl"></p>
+<p class="center">
+<input type="button" class="button L" id="save" style="width:150px" value="Save And Reboot" onclick="save_all()" /></p>
+</div>
+<input type="hidden" id="reboot_msg_" value="Modification of LAN IP address or subnet mask will restart ONU."  />
+<input type="hidden" id="boot_cfm_" value="Reboot the device to make your changes take effect. Are you sure to continue?"  />
+<script language="javascript" type="text/javascript">
+init();
+</script>
+	
+	
+	

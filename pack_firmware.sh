@@ -6,6 +6,10 @@ cat extracted_header.bin > output_firmware.bin
 cat packed.squash >> output_firmware.bin
 echo "Firmware joined as output_firmware.bin"
 echo "Generating footer..."
+#./tprepack
+# ./tprepack.c
+# gcc ./tprepack.c -o executable
+gcc ./tprepack.c -o tprepack -lcrypto -lssl
 ./tprepack
 echo "Done...Please double check size. If your file ends at lower 003800e8, then it's good"
 hexdump -C result.bin | tail -n 10
@@ -15,5 +19,3 @@ if [ $RESULT_SIZE -gt 3670248 ] ; then
 else
   echo "All good! use result.bin to update device"
 fi
-
-

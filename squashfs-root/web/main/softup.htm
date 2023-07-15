@@ -1,0 +1,71 @@
+﻿<script language="javascript" type="text/javascript">
+
+var language_t = new Array(
+	["soft_up_", 	"Upgrade",		"固件升级",		innerHTML_t, noSubIndex],
+	["file_path_", 	"File:",		"固件目录:",	innerHTML_t, noSubIndex],
+	["up_button_",	"Ok",			"升级",			value_t,	 noSubIndex]
+	);
+
+function doSubmit()
+{
+	var rand = Math.floor(Math.random() * 1000000) + 1;
+	var formObj = $.d.forms[0];
+
+	if($.id("filename").value == "")
+	{
+		alert("please select file");
+		return false;
+	}
+	$.addClass($.id("file_con"), "nd");
+	$.removeClass($.id("guage_con"), "nd");
+	
+	$.id("fileid").value = rand;
+	try
+	{
+		formObj.target = "up_frame";
+		formObj.action = "/cgi/softup";
+		formObj.submit();
+	}catch(e){}
+	
+	
+	$.guage(["Firmware is uploading", "Uploading..."],5, 880, function(){
+		$.guage(["The device is restarting", "Please wait ..."], 100, 900, function(){$.refresh();});
+		
+		$.cgi("/cgi/softburn", null, function(ret)
+		{
+			if (ret && ret != ERR_NETWORK && ret != ERR_EXIT && ret != ERR_NONE_FILE) 
+			{
+				$.err("cgi", ret);
+			}
+			
+		}, false, true);
+	});
+}
+</script>
+<p class="et" id="soft_up_"><b>Firmware Upgrade</b></p>
+<div id="file_con">
+<div class="con1 M">
+<p class="ct" id="soft_up_"><b>Firmware Upgrade</b></p>
+<p class="bl"></p>
+<form action="/cgi/softup" enctype="multipart/form-data" method="post">
+<div class="con2">
+<p id="soft_up_info_">Upgrade to new firmware to get more functions.</p>
+<p><b class="item S" id="file_path_">File Path:</b>
+<input type="file" name="filename" id="filename" />
+<input type="hidden" name="fileid" id="fileid" /></p>
+
+</div>
+
+<p class="center">
+<input type="button" class="button L" value="Upgrade" id="up_button_" onclick="return doSubmit()" /></p>
+<p class="bl"></p>
+<iframe name="up_frame" id="up_frame" style="visibility: hidden; width: 1px; height: 1px; overflow: hidden;"></iframe>
+</form>
+
+</div>
+</div>
+<!--
+<div id="guage_con" class="nd">
+	<h3>软件上传中...</h3><p class="br" /><p class="gline"><b class="gitem" id='gitem'></b><b class="gbar" id="gbar"></b></p>
+</div>
+-->

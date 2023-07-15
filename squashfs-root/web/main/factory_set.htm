@@ -1,0 +1,72 @@
+﻿<script language="javascript" type="text/javascript">
+
+var language_t = new Array(
+	["default_title_",	"Factory Defaults", "恢复出厂设置", 	innerHTML_t, noSubIndex],
+	["default_button",  "Factory Defaults", "恢复出厂设置",  	value_t,	 noSubIndex]
+	);
+	
+var ponStack;
+	
+function reset_onu()
+{
+	var msg = $.id("confirm_text_").value;
+	var eraseAuth;
+	if(confirm(msg))
+	{
+		//Chck whether need to erase auth info
+		if (true == document.forms[0].cbx_factory_loid.checked)
+		{
+			eraseAuth = 1;
+		}
+		else
+		{
+			eraseAuth = 0;
+		}
+		
+		$.act(ACT_SET, PON, ponStack[0].__stack, null, ["EraseAuth=" + eraseAuth]);
+		if (!$.exe())
+		{
+		$.act(ACT_OP, ACT_OP_FACTORY_RESET);
+		$.exe(function(err){
+			//if(!err) $.guage(["Device is restarting", "Please wait..."], 100, 300, function(){$.refresh();});
+			if(!err) $.guage(["Device is restarting", "Please wait..."], 100, 600, function(){location.href = "http:\/\/192.168.1.1";});
+			$.act(ACT_OP, ACT_OP_REBOOT);
+			$.exe(true);
+		});
+	}
+	}
+	else
+	return;
+}
+
+function init()
+{
+	ponStack = $.act(ACT_GL, PON, null, null, ["eraseAuth"]);
+	if (!$.exe())
+	{
+	}
+}
+
+</script>
+<p class="et">Factory Defaults</p>
+<div class="con1 M">
+<p class="ct" id="default_title_"><b>Factory Defaults</b></p>
+<p class="bl"></p>
+<div class="con2">
+<p id="default_info_">Click the button below to restore your factory default settings, without deleting current PON settings.</p>
+<p class="br"></p>
+<form name="form_factory_loid" style="position:relative; left:80px">
+	<input type="checkbox" id="cbx_factory_loid">Also erase current PON settings(PON Certification、VLAN Setting) 
+</form>
+<p class="br"></p>
+<p class="center"><input type="button" id="default_button" value="Restore" class="button L " onclick="reset_onu()" /></p>
+</div>
+<p class="bl"></p>
+</div>
+<input type="hidden" id="confirm_text_" value="All current configurations will be lost after ONU is restored. Are you sure you want to continue?" />
+<script language="javascript" type="text/javascript">
+init();
+</script>
+	
+	
+	

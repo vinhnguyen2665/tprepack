@@ -60,6 +60,7 @@ void init_crc32(unsigned char *crc_input)
 
 int main(int argc, char *argv[])
 {
+     printf ("Start pack c");
     char *filename="output_firmware.bin";
     EVP_MD_CTX *mdctx;
     unsigned char *md5_digest;
